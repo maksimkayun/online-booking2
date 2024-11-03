@@ -5,6 +5,7 @@ import {
     ClerkProvider,
 } from '@clerk/nextjs'
 import NavBar from "@/components/layout/NavBar";
+import Container from "@/components/Container";
 
 
 const geistSans = localFont({
@@ -36,7 +37,9 @@ export default function RootLayout({
                 <main className='flex flex-col min-h-screen bg-secondary'>
                     <NavBar/>
                     <section className='flex-grow'>
-                        {children}
+                        <Container>
+                            {children}
+                        </Container>
                     </section>
                 </main>
             </body>
