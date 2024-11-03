@@ -17,20 +17,60 @@ def collect_project_structure(project_path):
         'postcss.config.js'
     ]
 
+    # Список исключаемых директорий
+    excluded_dirs = {'node_modules', '.next'}
+
     # Собираем конфигурационные файлы
     for config_file in config_files:
         file_path = os.path.join(project_path, config_file)
         if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                result.append(f"// File: {config_file}\n{content}\n\n")
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    result.append(f"// File: {config_file}\n{content}\n\n")
+            except Exception as e:
+                result.append(f"// Error reading config file {config_file}: {str(e)}\n\n")
+
+    # Список значимых расширений файлов
+    significant_extensions = {
+        '.ts', '.tsx',  # TypeScript файлы
+        '.js', '.jsx',  # JavaScript файлы
+        '.prisma',      # Prisma схемы
+        '.graphql', '.gql',  # GraphQL схемы
+        '.sql',         # SQL файлы
+        '.css', '.scss', '.sass',  # Стили
+        '.middleware.ts', '.middleware.js'  # Next.js middleware
+    }
+
+    # Функция для проверки, нужно ли исключить директорию
+    def should_exclude(path):
+        path_parts = path.split(os.path.sep)
+        return any(excluded in path_parts for excluded in excluded_dirs)
 
     # Функция для рекурсивного обхода директорий
     def collect_source_files(directory):
-        for root, _, files in os.walk(directory):
+        for root, dirs, files in os.walk(directory):
+            # Пропускаем исключаемые директории
+            if should_exclude(root):
+                continue
+
+            # Фильтруем исключаемые директории из списка для обхода
+            dirs[:] = [d for d in dirs if d not in excluded_dirs]
+
             for file in files:
-                if file.endswith(('.ts', '.tsx', '.js', '.jsx', '.css', '.scss', '.prisma')):
-                    file_path = os.path.join(root, file)
+                file_path = os.path.join(root, file)
+                extension = os.path.splitext(file)[1].lower()
+                is_next_page = 'pages' in root.split(os.path.sep) and extension in {'.ts', '.tsx', '.js', '.jsx'}
+                is_next_api = 'api' in root.split(os.path.sep) and extension in {'.ts', '.tsx', '.js', '.jsx'}
+                is_next_component = 'components' in root.split(os.path.sep) and extension in {'.ts', '.tsx', '.js', '.jsx'}
+                is_next_layout = 'app' in root.split(os.path.sep) and ('layout' in file or 'page' in file)
+
+                # Проверяем, является ли файл значимым
+                if (extension in significant_extensions or
+                    is_next_page or
+                    is_next_api or
+                    is_next_component or
+                    is_next_layout):
                     relative_path = os.path.relpath(file_path, project_path)
                     try:
                         with open(file_path, 'r', encoding='utf-8') as f:
@@ -39,15 +79,8 @@ def collect_project_structure(project_path):
                     except Exception as e:
                         result.append(f"// Error reading file {relative_path}: {str(e)}\n\n")
 
-    # Собираем файлы из src директории
-    src_path = os.path.join(project_path, 'src')
-    if os.path.exists(src_path):
-        collect_source_files(src_path)
-
-    # Собираем файлы из prisma директории
-    prisma_path = os.path.join(project_path, 'prisma')
-    if os.path.exists(prisma_path):
-        collect_source_files(prisma_path)
+    # Собираем файлы из всего проекта
+    collect_source_files(project_path)
 
     # Создаем output файл
     output_path = os.path.join(project_path, 'project_structure.txt')
@@ -59,17 +92,38 @@ def collect_project_structure(project_path):
 
     # Создаем структуру проекта в формате дерева
     def generate_tree(directory, prefix=""):
+        if should_exclude(directory):
+            return []
+
         tree = []
-        entries = os.listdir(directory)
-        entries = [e for e in entries if not e.startswith('.') and e != 'node_modules']
-        entries.sort()
+        try:
+            entries = os.listdir(directory)
+        except PermissionError:
+            return []
+
+        entries = sorted(entries)
+        entries = [e for e in entries if e not in excluded_dirs]
 
         for i, entry in enumerate(entries):
             path = os.path.join(directory, entry)
             is_last = i == len(entries) - 1
 
             if os.path.isfile(path):
-                tree.append(f"{prefix}{'└── ' if is_last else '├── '}{entry}")
+                # Показываем только значимые файлы в дереве
+                extension = os.path.splitext(entry)[1].lower()
+                is_config = any(entry == config for config in config_files)
+                is_next_page = 'pages' in path.split(os.path.sep) and extension in {'.ts', '.tsx', '.js', '.jsx'}
+                is_next_api = 'api' in path.split(os.path.sep) and extension in {'.ts', '.tsx', '.js', '.jsx'}
+                is_next_component = 'components' in path.split(os.path.sep) and extension in {'.ts', '.tsx', '.js', '.jsx'}
+                is_next_layout = 'app' in path.split(os.path.sep) and ('layout' in entry or 'page' in entry)
+
+                if (extension in significant_extensions or
+                    is_config or
+                    is_next_page or
+                    is_next_api or
+                    is_next_component or
+                    is_next_layout):
+                    tree.append(f"{prefix}{'└── ' if is_last else '├── '}{entry}")
             else:
                 tree.append(f"{prefix}{'└── ' if is_last else '├── '}{entry}/")
                 tree.extend(generate_tree(path, prefix + ('    ' if is_last else '│   ')))
