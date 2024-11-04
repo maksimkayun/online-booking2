@@ -9,6 +9,9 @@ import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {Checkbox} from "@/components/ui/checkbox";
 import ImageUpload from "@/components/ui/ImageUpload";
+import {Loader2, Pencil, PencilLine} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {useState} from "react";
 
 interface AddHotelFormProps {
     hotel: HotelWithRooms | null;
@@ -47,6 +50,8 @@ const formSchema = z.object({
 });
 
 const AddHotelForm = ({hotel}: AddHotelFormProps) => {
+    const [isLoading/*, setIsLoading*/] = useState(false);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -312,6 +317,33 @@ const AddHotelForm = ({hotel}: AddHotelFormProps) => {
                                     </FormItem>
                                 )}
                             />
+                            <div className='flex justify-between gap-2 flex-wrap'>
+                                {hotel ? (
+                                    <Button>
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className='mr-2 h-4 w-4' /> Updating
+                                            </>
+                                        ) : (
+                                            <>
+                                                <PencilLine className='mr-2 h-4 w-4' /> Update
+                                            </>
+                                        )}
+                                    </Button>
+                                ) : (
+                                    <Button>
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 className='mr-2 h-4 w-4' /> Creating
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Pencil className='mr-2 h-4 w-4' /> Create Hotel
+                                            </>
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </form>
