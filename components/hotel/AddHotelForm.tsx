@@ -8,6 +8,7 @@ import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, Form
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {Checkbox} from "@/components/ui/checkbox";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 interface AddHotelFormProps {
     hotel: HotelWithRooms | null;
@@ -291,7 +292,27 @@ const AddHotelForm = ({hotel}: AddHotelFormProps) => {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex-1 flex flex-col gap-6">part 2</div>
+                        <div className="flex-1 flex flex-col gap-6">
+                            <FormField
+                                control={form.control}
+                                name="image"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Изображение отеля</FormLabel>
+                                        <FormDescription>
+                                            Добавьте главное изображение отеля
+                                        </FormDescription>
+                                        <FormControl>
+                                            <ImageUpload
+                                                value={field.value}
+                                                onChange={(value) => field.onChange(value)}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                     </div>
                 </form>
             </Form>
