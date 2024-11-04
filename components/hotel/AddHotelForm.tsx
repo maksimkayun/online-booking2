@@ -1,355 +1,167 @@
-'use client'
+// components/hotel/AddHotelForm.tsx
+'use client';
 
-import {Hotel, Room} from "@prisma/client";
+import { Hotel } from "@prisma/client";
 import * as z from "zod";
-import { useForm} from "react-hook-form";
-import {zodResolver} from "@hookform/resolvers/zod";
-import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
-import {Input} from "@/components/ui/input";
-import {Textarea} from "@/components/ui/textarea";
-import {Checkbox} from "@/components/ui/checkbox";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import ImageUpload from "@/components/ui/ImageUpload";
-import {Loader2, Pencil, PencilLine} from "lucide-react";
-import {Button} from "@/components/ui/button";
-import {useState} from "react";
+import { Loader2, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddHotelFormProps {
-    hotel: HotelWithRooms | null;
+    hotel?: Hotel | null;
 }
-export type HotelWithRooms = Hotel &
-    { rooms: Room[] };
 
 const formSchema = z.object({
     title: z.string().min(3, {
-        message: "Title must be at least 3 characters long",
+        message: "Название должно содержать минимум 3 символа",
     }),
     description: z.string().min(10, {
-        message: "Description must be at least 10 characters long",
+        message: "Описание должно содержать минимум 10 символов",
     }),
     image: z.string().min(1, {
-        message: "Image URL is required",
+        message: "Изображение обязательно",
     }),
-    country: z.string().min(1, {
-        message: "Country is required",
-    }),
-    state: z.string().optional(),
-    city : z.string().optional(),
-    locationDescription: z.string().optional(),
-    gym: z.boolean().optional(),
-    spa: z.boolean().optional(),
-    bar: z.boolean().optional(),
-    laundry: z.boolean().optional(),
-    restaurant: z.boolean().optional(),
-    shoppping: z.boolean().optional(),
-    freeParking: z.boolean().optional(),
-    bikeRental: z.boolean().optional(),
-    freeWifi: z.boolean().optional(),
-    movieNights: z.boolean().optional(),
-    swimmingPool: z.boolean().optional(),
-    coffeeShop: z.boolean().optional(),
 });
 
-const AddHotelForm = ({hotel}: AddHotelFormProps) => {
-    const [isLoading/*, setIsLoading*/] = useState(false);
+const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const { toast } = useToast();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            title: "",
-            description: "",
-            image: "",
-            country: "",
-            state: "",
-            city: "",
-            locationDescription: "",
-            gym: false,
-            spa: false,
-            bar: false,
-            laundry: false,
-            restaurant: false,
-            shoppping: false,
-            freeParking: false,
-            bikeRental: false,
-            freeWifi: false,
-            movieNights: false,
-            swimmingPool: false,
-            coffeeShop: false,
+            title: hotel?.title || "",
+            description: hotel?.description || "",
+            image: hotel?.image || "",
         },
-    })
+    });
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        // Do something with the form values.
-        // ✅ This will be type-safe and validated.
-        console.log(values)
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        try {
+            setIsLoading(true);
+            if (hotel) {
+                await fetch(`/api/hotels/${hotel.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(values)
+                });
+                toast({
+                    title: "Успешно!",
+                    description: "Отель успешно обновлен",
+                });
+            } else {
+                await fetch('/api/hotels', {
+                    method: 'POST',
+                    body: JSON.stringify(values)
+                });
+                toast({
+                    title: "Успешно!",
+                    description: "Отель успешно создан",
+                });
+            }
+            router.refresh();
+            router.push('/');
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Ошибка!",
+                description: "Что-то пошло не так",
+            });
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
-        <div>
+        <div className="max-w-3xl mx-auto">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <h3 className="text-lg font-semibold" >{hotel ? 'Update hotel' : 'Create hotel'}</h3>
-                    <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-1 flex flex-col gap-6">
-                            <FormField
-                                control={form.control}
-                                name="title"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Hotel title</FormLabel>
-                                        <FormDescription>
-                                            Hotel name
-                                        </FormDescription>
-                                        <FormControl>
-                                            <Input placeholder="Beach Hotel" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Hotel description</FormLabel>
-                                        <FormDescription>
-                                            Description of the hotel
-                                        </FormDescription>
-                                        <FormControl>
-                                            <Textarea placeholder="Beach Hotel is parked with many awesome" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div>
-                                <FormLabel>Choose Amenities</FormLabel>
-                                <FormDescription>Choose Amenities popular in this hotel</FormDescription>
-                                <div className="grid grid-cols-2 gap-4 mt-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="gym"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                    onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>Gym</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="spa"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>Spa</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="bar"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>Bar</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="laundry"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>Laundry</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="restaurant"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>Restaurant</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="shoppping"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>Shoppping</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="freeParking"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>FreeParking</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="bikeRental"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>BikeRental</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="freeWifi"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>FreeWifi</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="movieNights"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>MovieNights</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="swimmingPool"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>SwimmingPool</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="coffeeShop"
-                                        render={({ field }) => (
-                                            <FormItem className='flex flex-row items-end space-x-3 rounded-md border p-4'>
-                                                <FormControl>
-                                                    <Checkbox checked={field.value}
-                                                              onCheckedChange={field.onChange}/>
-                                                </FormControl>
-                                                <FormLabel>CoffeeShop</FormLabel>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </div>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <div className="space-y-6">
+                        <div>
+                            <h1 className="text-2xl font-bold">
+                                {hotel ? 'Редактировать отель' : 'Добавить новый отель'}
+                            </h1>
+                            <p className="text-sm text-muted-foreground">
+                                Заполните информацию об отеле
+                            </p>
                         </div>
-                        <div className="flex-1 flex flex-col gap-6">
-                            <FormField
-                                control={form.control}
-                                name="image"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Изображение отеля</FormLabel>
-                                        <FormDescription>
-                                            Добавьте главное изображение отеля
-                                        </FormDescription>
-                                        <FormControl>
-                                            <ImageUpload
-                                                value={field.value}
-                                                onChange={(value) => field.onChange(value)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className='flex justify-between gap-2 flex-wrap'>
-                                {hotel ? (
-                                    <Button>
-                                        {isLoading ? (
-                                            <>
-                                                <Loader2 className='mr-2 h-4 w-4' /> Updating
-                                            </>
-                                        ) : (
-                                            <>
-                                                <PencilLine className='mr-2 h-4 w-4' /> Update
-                                            </>
-                                        )}
-                                    </Button>
-                                ) : (
-                                    <Button>
-                                        {isLoading ? (
-                                            <>
-                                                <Loader2 className='mr-2 h-4 w-4' /> Creating
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Pencil className='mr-2 h-4 w-4' /> Create Hotel
-                                            </>
-                                        )}
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+
+                        <FormField
+                            control={form.control}
+                            name="title"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Название отеля</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Grand Hotel" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Описание</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            placeholder="Опишите ваш отель..."
+                                            className="resize-none"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="image"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Изображение отеля</FormLabel>
+                                    <FormControl>
+                                        <ImageUpload
+                                            value={field.value}
+                                            onChange={(value) => field.onChange(value)}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
+
+                    <Button disabled={isLoading} type="submit" className="w-full">
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                {hotel ? "Обновляем..." : "Создаем..."}
+                            </>
+                        ) : (
+                            <>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                {hotel ? "Обновить отель" : "Создать отель"}
+                            </>
+                        )}
+                    </Button>
                 </form>
             </Form>
         </div>
     );
-}
+};
 
 export default AddHotelForm;

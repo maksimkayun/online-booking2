@@ -16,3 +16,15 @@ npx prisma db seed
 
 npx prisma studio
 ```
+
+
+```angular2html
+npx prisma generate
+npx prisma migrate reset --force
+npx prisma migrate dev --name init
+
+// сохранение истории
+npx prisma migrate reset
+npx prisma migrate dev --name remove_unused_fields
+npx prisma generate
+```

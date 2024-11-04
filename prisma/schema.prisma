@@ -1,12 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// prisma/schema.prisma
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -15,83 +9,41 @@ datasource db {
 }
 
 model Hotel {
-  id                  String    @id @default(cuid())
-  userId              String
-  title               String    @db.Text
-  description         String    @db.Text
-  image               String
-  coutry              String
-  state               String
-  city                String
-  locationDescription String    @db.Text
-  gym                 Boolean   @default(false)
-  spa                 Boolean   @default(false)
-  bar                 Boolean   @default(false)
-  laundry             Boolean   @default(false)
-  restaurant          Boolean   @default(false)
-  shopping            Boolean   @default(false)
-  freeParking         Boolean   @default(false)
-  bikeRental          Boolean   @default(false)
-  freeWifi            Boolean   @default(false)
-  movieNights         Boolean   @default(false)
-  swimmingPool        Boolean   @default(false)
-  coffeShop           Boolean   @default(false)
-  addedAt             DateTime  @default(now())
-  updatedAt           DateTime  @default(now())
-  rooms               Room[]
-  bookings            Booking[]
-
-  // @@fulltext([title])
+  id          String    @id @default(cuid())
+  userId      String
+  title       String    @db.Text
+  description String    @db.Text
+  image       String
+  addedAt     DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  rooms       Room[]
+  bookings    Booking[]
 }
 
 model Room {
-  id             String  @id @default(uuid())
-  title          String
-  description    String  @db.Text
-  bedCount       Int     @default(0)
-  guestCount     Int     @default(0)
-  bathroomCount  Int     @default(0)
-  kingBed        Boolean @default(false)
-  queenBed       Boolean @default(false)
-  image          String
-  breakFastPrice Int
-  roomPrice      Int
-  roomService    Boolean @default(false)
-  TV             Boolean @default(false)
-  balcony        Boolean @default(false)
-  cityView       Boolean @default(false)
-  oceanView      Boolean @default(false)
-  forestView     Boolean @default(false)
-  mountainView   Boolean @default(false)
-  airCondition   Boolean @default(false)
-  soundProofed   Boolean @default(false)
-
-  Hotel   Hotel? @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  hotelId String
-
-  Booking Booking[]
+  id          String    @id @default(uuid())
+  title       String
+  description String    @db.Text
+  image       String
+  roomPrice   Int
+  hotelId     String
+  Hotel       Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  Booking     Booking[]
 
   @@index([hotelId])
 }
 
 model Booking {
-  id                String   @id @default(uuid())
-  userName          String
-  userId            String
-  hotelOwnerId      String
-  startDate         DateTime
-  endDate           DateTime
-  breakFastIncluded Boolean  @default(false)
-  currency          String
-  totalPrice        Int
-  paymentStatus     Boolean  @default(false)
-  paymentIntentId   String   @unique
-  bookedAt          DateTime @default(now())
-
-  Hotel   Hotel? @relation(fields: [hotelId], references: [id])
-  hotelId String
-  Room    Room?  @relation(fields: [roomId], references: [id])
-  roomId  String
+  id         String   @id @default(uuid())
+  userId     String
+  startDate  DateTime
+  endDate    DateTime
+  totalPrice Int
+  hotelId    String
+  roomId     String
+  bookedAt   DateTime @default(now())
+  Hotel      Hotel    @relation(fields: [hotelId], references: [id])
+  Room       Room     @relation(fields: [roomId], references: [id])
 
   @@index([hotelId])
   @@index([roomId])
