@@ -7,6 +7,9 @@ https://ui.shadcn.com/docs/components/form
 
 npm install -D ts-node typescript @types/node
 
+// add shadcn component
+npx shadcn@latest add separator
+
 ```
 ```
 

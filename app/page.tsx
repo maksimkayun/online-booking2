@@ -1,23 +1,18 @@
 import HotelList from "@/components/hotel/HotelList";
-import { prismadb } from "@/lib/prismadb";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
+import { getHotels } from "@/app/getHotels";
 
 export default async function Home() {
     const { userId } = await auth();
-
-    const hotels = await prismadb.hotel.findMany({
-        orderBy: {
-            addedAt: 'desc'
-        }
-    });
+    const hotels = await getHotels();
 
     return (
         <div className="space-y-6 pb-8">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Отели</h1>                
+                <h1 className="text-3xl font-bold">Отели</h1>
             </div>
             {hotels.length === 0 ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
