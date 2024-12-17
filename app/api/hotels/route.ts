@@ -41,3 +41,18 @@ export async function POST(req: Request) {
         return new NextResponse("Внутренняя ошибка сервера", { status: 500 });
     }
 }
+
+export async function GET() {
+    try {
+        const hotels = await prismadb.hotel.findMany({
+            orderBy: {
+                addedAt: 'desc'
+            },
+        });
+
+        return NextResponse.json(hotels);
+    } catch (error) {
+        console.log('[HOTELS_GET]', error);
+        return new NextResponse("Internal error", { status: 500 });
+    }
+}

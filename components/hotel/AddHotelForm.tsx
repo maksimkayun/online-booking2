@@ -1,4 +1,3 @@
-// components/hotel/AddHotelForm.tsx
 'use client';
 
 import { Hotel } from "@prisma/client";
@@ -14,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useHotel } from "@/hooks/use-hotel";
+import { useHotels } from "@/hooks/use-hotels";
 
 interface AddHotelFormProps {
     hotel?: Hotel | null;
@@ -35,6 +36,8 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
+    const { mutate: mutateHotel } = useHotel(hotel?.id);
+    const { mutate: mutateHotels } = useHotels();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -49,26 +52,51 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
         try {
             setIsLoading(true);
             if (hotel) {
-                await fetch(`/api/hotels/${hotel.id}`, {
+                const response = await fetch(`/api/hotels/${hotel.id}`, {
                     method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify(values)
                 });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update hotel');
+                }
+
+                // Обновляем данные в кеше
+                await Promise.all([
+                    mutateHotel(),
+                    mutateHotels()
+                ]);
+
                 toast({
                     title: "Успешно!",
                     description: "Отель успешно обновлен",
                 });
             } else {
-                await fetch('/api/hotels', {
+                const response = await fetch('/api/hotels', {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify(values)
                 });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create hotel');
+                }
+
+                const newHotel = await response.json();
+                await mutateHotels();
+
                 toast({
                     title: "Успешно!",
                     description: "Отель успешно создан",
                 });
+
+                router.push(`/hotel/${newHotel.id}`);
             }
-            router.refresh();
-            router.push('/');
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({

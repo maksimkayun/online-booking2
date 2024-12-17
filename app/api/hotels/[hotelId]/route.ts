@@ -46,3 +46,28 @@ export async function PATCH(
         return new NextResponse("Внутренняя ошибка сервера", { status: 500 });
     }
 }
+
+export async function GET(
+    req: Request,
+    { params }: { params: { hotelId: string } }
+) {
+    try {
+        const hotel = await prismadb.hotel.findUnique({
+            where: {
+                id: params.hotelId,
+            },
+            include: {
+                rooms: true
+            }
+        });
+
+        if (!hotel) {
+            return new NextResponse("Hotel not found", { status: 404 });
+        }
+
+        return NextResponse.json(hotel);
+    } catch (error) {
+        console.log('[HOTEL_GET]', error);
+        return new NextResponse("Internal error", { status: 500 });
+    }
+}

@@ -1,4 +1,3 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
@@ -18,7 +17,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ClerkProvider>
+        <ClerkProvider dynamic={true}>
             <html lang="en" suppressHydrationWarning>
             <body className={GeistSans.className}>
             <main className="flex flex-col min-h-screen bg-secondary">
