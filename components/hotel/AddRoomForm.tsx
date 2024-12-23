@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import ImageUpload from "@/components/ui/ImageUpload";
+import RoomImageUpload from "@/components/ui/RoomImageUpload";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -56,36 +56,38 @@ export default function AddRoomForm({ hotelId, room }: AddRoomFormProps) {
     async function onSubmit(values: FormValues) {
         try {
             setIsLoading(true);
-            if (room) {
-                await fetch(`/api/hotels/${hotelId}/rooms/${room.id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(values)
-                });
-                toast({
-                    title: "Успешно!",
-                    description: "Номер успешно обновлен",
-                });
-            } else {
-                await fetch(`/api/hotels/${hotelId}/rooms`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(values)
-                });
-                toast({
-                    title: "Успешно!",
-                    description: "Номер успешно добавлен",
-                });
+
+            const url = room
+                ? `/api/hotels/${hotelId}/rooms/${room.id}`
+                : `/api/hotels/${hotelId}/rooms`;
+
+            const method = room ? 'PATCH' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...values,
+                    roomPrice: Number(values.roomPrice)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(room ? 'Failed to update room' : 'Failed to create room');
             }
+
+            toast({
+                title: "Успешно!",
+                description: room ? "Номер успешно обновлен" : "Номер успешно добавлен",
+            });
+
             router.refresh();
             setIsOpen(false);
             form.reset();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
+            console.error("Error submitting form:", error);
             toast({
                 variant: "destructive",
                 title: "Ошибка!",
@@ -104,7 +106,7 @@ export default function AddRoomForm({ hotelId, room }: AddRoomFormProps) {
                     {room ? "Редактировать номер" : "Добавить номер"}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
                         {room ? "Редактировать номер" : "Добавить номер"}
@@ -156,7 +158,6 @@ export default function AddRoomForm({ hotelId, room }: AddRoomFormProps) {
                                                 type="number"
                                                 placeholder="5000"
                                                 {...field}
-                                                onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -171,9 +172,9 @@ export default function AddRoomForm({ hotelId, room }: AddRoomFormProps) {
                                     <FormItem>
                                         <FormLabel>Изображение номера</FormLabel>
                                         <FormControl>
-                                            <ImageUpload
+                                            <RoomImageUpload
                                                 value={field.value}
-                                                onChange={(value) => field.onChange(value)}
+                                                onChange={field.onChange}
                                             />
                                         </FormControl>
                                         <FormMessage />

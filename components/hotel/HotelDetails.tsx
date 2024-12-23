@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +16,7 @@ import { createBooking } from '@/actions/createBooking';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
 
 type HotelWithRooms = Hotel & {
     rooms: Room[];
@@ -26,13 +30,13 @@ interface HotelDetailsProps {
 
 export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDetailsProps) {
     const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-    const [startDate, setStartDate] = useState<Date>();
-    const [endDate, setEndDate] = useState<Date>();
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
 
     const bookingRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         if (window.location.hash === '#booking' && bookingRef.current) {
             bookingRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -40,7 +44,7 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
     }, []);
 
     const handleBooking = async () => {
-        if (!selectedRoom || !startDate || !endDate) {
+        if (!selectedRoom || !dateRange?.from || !dateRange?.to) {
             toast({
                 variant: "destructive",
                 title: "Ошибка",
@@ -52,7 +56,7 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
         try {
             setIsLoading(true);
             const totalNights = Math.ceil(
-                (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                (dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)
             );
             const room = hotel.rooms.find(r => r.id === selectedRoom);
             if (!room) return;
@@ -62,8 +66,8 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
             await createBooking(
                 selectedRoom,
                 hotel.id,
-                startDate,
-                endDate,
+                dateRange.from,
+                dateRange.to,
                 totalPrice
             );
 
@@ -105,8 +109,8 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
     }
 
     const selectedRoomData = selectedRoom ? hotel.rooms.find(r => r.id === selectedRoom) : null;
-    const totalNights = startDate && endDate ?
-        Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    const totalNights = dateRange?.from && dateRange?.to ?
+        Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)) : 0;
     const totalPrice = selectedRoomData ? totalNights * selectedRoomData.roomPrice : 0;
 
     return (
@@ -126,22 +130,42 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
 
                     <div ref={bookingRef}>
                         <h2 className="text-xl font-semibold mb-4">Выберите даты</h2>
-                        <div className="flex gap-4 flex-wrap">
-                            <Calendar
-                                mode="single"
-                                selected={startDate}
-                                onSelect={setStartDate}
-                                className="rounded-md border"
-                                disabled={(date) => date < new Date()}
-                            />
-                            <Calendar
-                                mode="single"
-                                selected={endDate}
-                                onSelect={setEndDate}
-                                className="rounded-md border"
-                                disabled={(date) => date < (startDate || new Date())}
-                            />
-                        </div>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !dateRange && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
+                                            <>
+                                                {format(dateRange.from, 'dd.MM.yy')} -{' '}
+                                                {format(dateRange.to, 'dd.MM.yy')}
+                                            </>
+                                        ) : (
+                                            format(dateRange.from, 'dd.MM.yy')
+                                        )
+                                    ) : (
+                                        <span>Выберите даты бронирования</span>
+                                    )}
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="p-0">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    locale={ru}
+                                    disabled={(date) => date < new Date()}
+                                    numberOfMonths={1}
+                                />
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </div>
             </div>
@@ -195,10 +219,10 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
 
                                         <div className="text-muted-foreground">Даты:</div>
                                         <div className="font-medium">
-                                            {startDate && endDate ? (
+                                            {dateRange?.from && dateRange?.to ? (
                                                 <>
-                                                    {format(startDate, 'dd MMM', { locale: ru })} -{' '}
-                                                    {format(endDate, 'dd MMM yyyy', { locale: ru })}
+                                                    {format(dateRange.from, 'dd MMM', { locale: ru })} -{' '}
+                                                    {format(dateRange.to, 'dd MMM yyyy', { locale: ru })}
                                                 </>
                                             ) : (
                                                 'Не выбраны'
@@ -220,7 +244,7 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
                                 <Button
                                     className="w-full"
                                     onClick={handleBooking}
-                                    disabled={!selectedRoom || !startDate || !endDate || isLoading}
+                                    disabled={!selectedRoom || !dateRange?.from || !dateRange?.to || isLoading}
                                 >
                                     {isLoading ? 'Оформление...' : 'Оформить бронирование'}
                                 </Button>

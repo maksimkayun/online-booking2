@@ -1,7 +1,13 @@
-// actions/createBooking.ts
 'use server'
 
 import { redirect } from 'next/navigation';
+import { auth } from "@clerk/nextjs/server";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+
+if (!APP_URL) {
+    throw new Error('NEXT_PUBLIC_APP_URL must be set in environment variables');
+}
 
 export async function createBooking(
     roomId: string,
@@ -11,10 +17,21 @@ export async function createBooking(
     totalPrice: number
 ) {
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/bookings`, {
+        const { getToken } = await auth();
+        // Получаем токен для авторизации
+        const token = await getToken();
+
+        if (!token) {
+            throw new Error('Unauthorized: No token available');
+        }
+
+        const url = new URL('/api/bookings', APP_URL);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
                 roomId,
@@ -26,8 +43,13 @@ export async function createBooking(
         });
 
         if (!response.ok) {
-            throw new Error('Failed to book room');
+            const errorData = await response.text();
+            console.error('Booking error response:', errorData);
+            throw new Error(`Failed to book room: ${errorData}`);
         }
+
+        const data = await response.json();
+        console.log('Booking success:', data);
 
         redirect('/my-bookings');
     } catch (error) {
