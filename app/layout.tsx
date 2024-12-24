@@ -20,14 +20,16 @@ export default function RootLayout({
         <ClerkProvider dynamic={true}>
             <html lang="en" suppressHydrationWarning>
             <body className={GeistSans.className}>
-            <main className="flex flex-col min-h-screen bg-secondary">
+            <div className="min-h-screen flex flex-col bg-secondary">
                 <NavBar />
-                <section className="flex-grow">
+                <main className="flex-grow relative">
                     <Container>
-                        {children}
+                        <div className="main-content">
+                            {children}
+                        </div>
                     </Container>
-                </section>
-            </main>
+                </main>
+            </div>
             <Toaster />
             </body>
             </html>
