@@ -24,7 +24,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
 
     const isOwner = hotel.userId === userId;
 
-    // Пользователь не может бронировать свой собственный отель
+    // Владелец не может бронировать свой собственный отель
     if (isOwner) {
         redirect('/');
     }

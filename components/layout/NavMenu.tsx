@@ -30,7 +30,7 @@ export function NavMenu() {
                 <DropdownMenuItem className="cursor-pointer flex gap-2 items-center" onClick={() => router.push('/my-hotels')}>
                     <Hotel size={15} /> <span>My Hotels</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer flex gap-2 items-center" onClick={() => router.push('/my-bookins')}>
+                <DropdownMenuItem className="cursor-pointer flex gap-2 items-center" onClick={() => router.push('/my-bookings')}>
                     <BookOpenCheck size={15} /> <span>My Bookings</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>

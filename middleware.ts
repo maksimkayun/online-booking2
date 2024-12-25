@@ -6,8 +6,10 @@ const isPublicRoute = createRouteMatcher([
     '/',
     '/hotel/:id',
     '/hotel/:id/book',
+    '/my-bookings',
     '/api/bookings(.*)',
     '/api/hotels(.*)',
+    '/api/mybookings(.*)',
     "/api/auth/uploadthing"
 ])
 

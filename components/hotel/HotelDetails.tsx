@@ -28,13 +28,12 @@ interface HotelDetailsProps {
     isBookingPage?: boolean;
 }
 
-export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDetailsProps) {
+export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: HotelDetailsProps) {
     const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
-
     const bookingRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -78,6 +77,7 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
 
             router.refresh();
             router.push('/my-bookings');
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -125,48 +125,61 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage }: HotelDet
                     />
                 </div>
                 <div className="space-y-4">
-                    <h1 className="text-3xl font-bold">{hotel.title}</h1>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-3xl font-bold">{hotel.title}</h1>
+                        {!isOwner && !isBookingPage && (
+                            <Button
+                                onClick={() => router.push(`/hotel/${hotel.id}/book`)}
+                                className="ml-4"
+                                size="lg"
+                            >
+                                Забронировать
+                            </Button>
+                        )}
+                    </div>
                     <p className="text-muted-foreground">{hotel.description}</p>
 
-                    <div ref={bookingRef}>
-                        <h2 className="text-xl font-semibold mb-4">Выберите даты</h2>
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !dateRange && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, 'dd.MM.yy')} -{' '}
-                                                {format(dateRange.to, 'dd.MM.yy')}
-                                            </>
+                    {isBookingPage && (
+                        <div ref={bookingRef}>
+                            <h2 className="text-xl font-semibold mb-4">Выберите даты</h2>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !dateRange && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                            dateRange.to ? (
+                                                <>
+                                                    {format(dateRange.from, 'dd.MM.yy')} -{' '}
+                                                    {format(dateRange.to, 'dd.MM.yy')}
+                                                </>
+                                            ) : (
+                                                format(dateRange.from, 'dd.MM.yy')
+                                            )
                                         ) : (
-                                            format(dateRange.from, 'dd.MM.yy')
-                                        )
-                                    ) : (
-                                        <span>Выберите даты бронирования</span>
-                                    )}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="p-0">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    locale={ru}
-                                    disabled={(date) => date < new Date()}
-                                    numberOfMonths={1}
-                                />
-                            </DialogContent>
-                        </Dialog>
-                    </div>
+                                            <span>Выберите даты бронирования</span>
+                                        )}
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="p-0">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        locale={ru}
+                                        disabled={(date) => date < new Date()}
+                                        numberOfMonths={2}
+                                    />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    )}
                 </div>
             </div>
 
