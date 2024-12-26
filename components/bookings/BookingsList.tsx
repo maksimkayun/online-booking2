@@ -6,8 +6,12 @@ import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { CalendarDays, Building2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { CalendarDays, Building2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface BookingWithDetails extends Booking {
     Hotel: Hotel;
@@ -20,6 +24,8 @@ interface BookingsListProps {
 
 export default function BookingsList({ bookings }: BookingsListProps) {
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState<string | null>(null);
+    const { toast } = useToast();
 
     if (!bookings?.length) {
         return (
@@ -31,6 +37,36 @@ export default function BookingsList({ bookings }: BookingsListProps) {
             </div>
         );
     }
+
+    const handleCancelBooking = async (bookingId: string) => {
+        try {
+            setIsLoading(bookingId);
+            const response = await fetch(`/api/bookings/${bookingId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+
+            toast({
+                title: "Успешно!",
+                description: "Бронирование отменено",
+            });
+
+            router.refresh();
+        } catch (error) {
+            console.error('Error canceling booking:', error);
+            toast({
+                variant: "destructive",
+                title: "Ошибка",
+                description: "Не удалось отменить бронирование"
+            });
+        } finally {
+            setIsLoading(null);
+        }
+    };
 
     const isBookingActive = (booking: BookingWithDetails) => {
         const now = new Date();
@@ -74,11 +110,13 @@ export default function BookingsList({ bookings }: BookingsListProps) {
                             <Card
                                 key={booking.id}
                                 className="cursor-pointer hover:shadow-lg transition-shadow"
-                                onClick={() => router.push(`/hotel/${booking.hotelId}`)}
                             >
                                 <CardHeader className="space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="line-clamp-1">
+                                        <CardTitle
+                                            className="line-clamp-1 cursor-pointer"
+                                            onClick={() => router.push(`/hotel/${booking.hotelId}`)}
+                                        >
                                             {booking.Hotel.title}
                                         </CardTitle>
                                         <Badge variant={getBookingStatus(booking).variant}>
@@ -120,6 +158,39 @@ export default function BookingsList({ bookings }: BookingsListProps) {
                                                 </span>
                                             </div>
                                         </div>
+                                        {isBookingUpcoming(booking) && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        variant="destructive"
+                                                        className="w-full mt-2"
+                                                        disabled={isLoading === booking.id}
+                                                    >
+                                                        <X className="h-4 w-4 mr-2" />
+                                                        {isLoading === booking.id ? 'Отмена...' : 'Отменить бронирование'}
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>
+                                                            Отменить бронирование?
+                                                        </AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Это действие нельзя отменить. Бронирование будет удалено.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            onClick={() => handleCancelBooking(booking.id)}
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                        >
+                                                            Отменить бронирование
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
