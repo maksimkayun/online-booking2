@@ -5,6 +5,13 @@ import { ClerkProvider } from '@clerk/nextjs'
 import NavBar from "@/components/layout/NavBar";
 import Container from "@/components/Container";
 import { Toaster } from "@/components/ui/toaster";
+import dynamic from 'next/dynamic'
+
+// Динамический импорт AuthInitializer с отключенным SSR
+const AuthInitializer = dynamic(
+    () => import('@/components/auth/AuthInitializer').then(mod => mod.AuthInitializer),
+    { ssr: false }
+);
 
 export const metadata: Metadata = {
     title: "Online booking",
@@ -17,9 +24,10 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ClerkProvider dynamic={true}>
+        <ClerkProvider>
             <html lang="en" suppressHydrationWarning>
             <body className={GeistSans.className}>
+            <AuthInitializer />
             <div className="min-h-screen flex flex-col bg-secondary">
                 <NavBar />
                 <main className="flex-grow relative">

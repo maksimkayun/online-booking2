@@ -1,4 +1,6 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { prismadb } from "@/lib/prismadb";
+import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
     '/sign-in(.*)',
@@ -11,13 +13,40 @@ const isPublicRoute = createRouteMatcher([
     '/api/hotels(.*)',
     '/api/mybookings(.*)',
     "/api/auth/uploadthing"
-])
+]);
 
 export default clerkMiddleware(async (auth, request) => {
     if (!isPublicRoute(request)) {
-        await auth.protect()
+        await auth.protect();
     }
-})
+
+    // Если пользователь авторизован
+    if (auth.userId) {
+        try {
+            // Проверяем, существует ли уже запись о правах пользователя
+            const existingPermission = await prismadb.userPermission.findUnique({
+                where: {
+                    userId: auth.userId
+                }
+            });
+
+            // Если записи нет, создаем новую с ролью USER
+            if (!existingPermission) {
+                await prismadb.userPermission.create({
+                    data: {
+                        userId: auth.userId,
+                        role: 'USER'
+                    }
+                });
+                console.log(`Created USER role for ${auth.userId}`);
+            }
+        } catch (error) {
+            console.error('Error handling user permissions:', error);
+        }
+    }
+
+    return NextResponse.next();
+});
 
 export const config = {
     matcher: [
