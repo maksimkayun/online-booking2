@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
     const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isLoading, setIsLoading] = useState(false);
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
     const bookingRef = useRef<HTMLDivElement>(null);
@@ -41,6 +42,14 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
             bookingRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, []);
+
+    const handleRoomSelect = (roomId: string) => {
+        setSelectedRoom(selectedRoom === roomId ? null : roomId);
+    };
+
+    const handleResetDates = () => {
+        setDateRange(undefined);
+    };
 
     const handleBooking = async () => {
         if (!selectedRoom || !dateRange?.from || !dateRange?.to) {
@@ -139,45 +148,57 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
                     </div>
                     <p className="text-muted-foreground">{hotel.description}</p>
 
-                    {isBookingPage && (
+                    {isBookingPage && selectedRoom && (
                         <div ref={bookingRef}>
                             <h2 className="text-xl font-semibold mb-4">Выберите даты</h2>
-                            <Dialog>
-                                <DialogTrigger asChild>
+                            <div className="flex gap-2">
+                                <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className={cn(
+                                                "w-full justify-start text-left font-normal",
+                                                !dateRange && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {dateRange?.from ? (
+                                                dateRange.to ? (
+                                                    <>
+                                                        {format(dateRange.from, 'dd.MM.yy')} -{' '}
+                                                        {format(dateRange.to, 'dd.MM.yy')}
+                                                    </>
+                                                ) : (
+                                                    format(dateRange.from, 'dd.MM.yy')
+                                                )
+                                            ) : (
+                                                <span>Выберите даты бронирования</span>
+                                            )}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="p-0">
+                                        <Calendar
+                                            initialFocus
+                                            mode="range"
+                                            selected={dateRange}
+                                            onSelect={setDateRange}
+                                            locale={ru}
+                                            disabled={(date) => date < new Date()}
+                                            numberOfMonths={2}
+                                        />
+                                    </DialogContent>
+                                </Dialog>
+                                {dateRange && (
                                     <Button
                                         variant="outline"
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !dateRange && "text-muted-foreground"
-                                        )}
+                                        size="icon"
+                                        onClick={handleResetDates}
+                                        className="shrink-0"
                                     >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dateRange?.from ? (
-                                            dateRange.to ? (
-                                                <>
-                                                    {format(dateRange.from, 'dd.MM.yy')} -{' '}
-                                                    {format(dateRange.to, 'dd.MM.yy')}
-                                                </>
-                                            ) : (
-                                                format(dateRange.from, 'dd.MM.yy')
-                                            )
-                                        ) : (
-                                            <span>Выберите даты бронирования</span>
-                                        )}
+                                        <X className="h-4 w-4" />
                                     </Button>
-                                </DialogTrigger>
-                                <DialogContent className="p-0">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        locale={ru}
-                                        disabled={(date) => date < new Date()}
-                                        numberOfMonths={2}
-                                    />
-                                </DialogContent>
-                            </Dialog>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -189,10 +210,11 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
                 {hotel.rooms.map((room) => (
                     <Card
                         key={room.id}
-                        className={`transition-all duration-200 cursor-pointer hover:ring-2 hover:ring-primary/50 ${
+                        className={cn(
+                            "transition-all duration-200 cursor-pointer hover:ring-2 hover:ring-primary/50",
                             selectedRoom === room.id ? 'ring-2 ring-primary' : ''
-                        }`}
-                        onClick={() => setSelectedRoom(room.id)}
+                        )}
+                        onClick={() => handleRoomSelect(room.id)}
                     >
                         <div className="relative h-48">
                             <Image
@@ -215,7 +237,7 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
                 ))}
             </div>
 
-            {isBookingPage && (
+            {isBookingPage && selectedRoom && (
                 <>
                     <Separator className="my-8" />
 
