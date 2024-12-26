@@ -14,9 +14,10 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createBooking } from '@/actions/createBooking';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, isBefore, isWithinInterval } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
+import { useRoomBookings } from '@/hooks/use-room-bookings';
 
 type HotelWithRooms = Hotel & {
     rooms: Room[];
@@ -36,6 +37,55 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
     const router = useRouter();
     const { toast } = useToast();
     const bookingRef = useRef<HTMLDivElement>(null);
+
+    // Получаем существующие бронирования для выбранного номера
+    const { bookings } = useRoomBookings(hotel.id, selectedRoom ?? undefined);
+
+    // Проверяем, есть ли пересечения с существующими бронями
+    const hasOverlap = (start: Date, end: Date) => {
+        return bookings.some(booking => {
+            const bookingStart = new Date(booking.startDate);
+            const bookingEnd = new Date(booking.endDate);
+
+            // Проверяем все возможные случаи пересечения периодов
+            return (
+                (start <= bookingEnd && end >= bookingStart) || // Общий случай пересечения
+                (start >= bookingStart && start <= bookingEnd) || // Начало внутри существующей брони
+                (end >= bookingStart && end <= bookingEnd) || // Конец внутри существующей брони
+                (start <= bookingStart && end >= bookingEnd) // Новая бронь полностью включает существующую
+            );
+        });
+    };
+
+    // Функция для проверки, доступна ли дата для бронирования
+    const isDateDisabled = (date: Date) => {
+        // Нельзя выбрать прошедшие даты
+        if (isBefore(date, new Date())) {
+            return true;
+        }
+
+        // Если уже выбрана начальная дата, проверяем пересечения
+        if (dateRange?.from && !dateRange.to) {
+            // Если текущая дата раньше выбранной начальной, проверяем период
+            if (date < dateRange.from) {
+                return hasOverlap(date, dateRange.from);
+            }
+            // Если текущая дата позже выбранной начальной, проверяем период
+            return hasOverlap(dateRange.from, date);
+        }
+
+        // Проверяем, не попадает ли дата в период существующих броней
+        return bookings.some(booking => {
+            const startDate = new Date(booking.startDate);
+            const endDate = new Date(booking.endDate);
+            return isWithinInterval(date, { start: startDate, end: endDate });
+        });
+    };
+
+    // Сбрасываем выбранные даты при смене номера
+    useEffect(() => {
+        setDateRange(undefined);
+    }, [selectedRoom]);
 
     useEffect(() => {
         if (window.location.hash === '#booking' && bookingRef.current) {
@@ -86,12 +136,17 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
 
             router.refresh();
             router.push('/my-bookings');
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
+            let errorMessage = "Не удалось создать бронирование";
+
+            if (error instanceof Response && error.status === 409) {
+                errorMessage = "Выбранные даты уже забронированы другим пользователем";
+            }
+
             toast({
                 variant: "destructive",
                 title: "Ошибка",
-                description: "Не удалось создать бронирование",
+                description: errorMessage,
             });
         } finally {
             setIsLoading(false);
@@ -181,9 +236,19 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
                                             initialFocus
                                             mode="range"
                                             selected={dateRange}
-                                            onSelect={setDateRange}
+                                            onSelect={(range) => {
+                                                if (range?.from && range?.to && hasOverlap(range.from, range.to)) {
+                                                    toast({
+                                                        variant: "destructive",
+                                                        title: "Ошибка",
+                                                        description: "Выбранный период пересекается с существующими бронированиями"
+                                                    });
+                                                    return;
+                                                }
+                                                setDateRange(range);
+                                            }}
                                             locale={ru}
-                                            disabled={(date) => date < new Date()}
+                                            disabled={isDateDisabled}
                                             numberOfMonths={2}
                                         />
                                     </DialogContent>

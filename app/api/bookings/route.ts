@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs/server";
 
-export async function POST(
-    req: Request
-) {
+export async function POST(req: Request) {
     try {
         const { userId } = await auth();
         const body = await req.json();
@@ -19,21 +17,47 @@ export async function POST(
             return new NextResponse("Missing required fields", { status: 400 });
         }
 
+        const newStartDate = new Date(startDate);
+        const newEndDate = new Date(endDate);
+
+        // Проверяем валидность дат
+        if (newStartDate >= newEndDate) {
+            return new NextResponse("Invalid date range", { status: 400 });
+        }
+
+        if (newStartDate < new Date()) {
+            return new NextResponse("Cannot book dates in the past", { status: 400 });
+        }
+
         // Проверяем, не забронирован ли номер на эти даты
+        // Используем более точную проверку пересечений
         const existingBooking = await prismadb.booking.findFirst({
             where: {
                 roomId,
-                OR: [
+                AND: [
                     {
-                        AND: [
-                            { startDate: { lte: new Date(startDate) } },
-                            { endDate: { gte: new Date(startDate) } }
-                        ]
-                    },
-                    {
-                        AND: [
-                            { startDate: { lte: new Date(endDate) } },
-                            { endDate: { gte: new Date(endDate) } }
+                        OR: [
+                            // Новая бронь начинается во время существующей
+                            {
+                                AND: [
+                                    { startDate: { lte: newStartDate } },
+                                    { endDate: { gte: newStartDate } }
+                                ]
+                            },
+                            // Новая бронь заканчивается во время существующей
+                            {
+                                AND: [
+                                    { startDate: { lte: newEndDate } },
+                                    { endDate: { gte: newEndDate } }
+                                ]
+                            },
+                            // Новая бронь полностью содержит существующую
+                            {
+                                AND: [
+                                    { startDate: { gte: newStartDate } },
+                                    { endDate: { lte: newEndDate } }
+                                ]
+                            }
                         ]
                     }
                 ]
@@ -41,7 +65,10 @@ export async function POST(
         });
 
         if (existingBooking) {
-            return new NextResponse("Room is already booked for these dates", { status: 400 });
+            return new NextResponse(
+                "Room is already booked for these dates",
+                { status: 409 }
+            );
         }
 
         const booking = await prismadb.booking.create({
@@ -49,8 +76,8 @@ export async function POST(
                 userId,
                 roomId,
                 hotelId,
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
+                startDate: newStartDate,
+                endDate: newEndDate,
                 totalPrice
             }
         });
