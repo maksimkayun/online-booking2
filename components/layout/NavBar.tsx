@@ -1,3 +1,5 @@
+"use client";
+
 import { signOut, useSession } from "next-auth/react";
 import Container from "@/components/Container";
 import Image from "next/image";
