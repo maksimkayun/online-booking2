@@ -15,9 +15,7 @@ import { useUserRole } from "@/hooks/use-permissions"
 
 export function NavMenu() {
     const router = useRouter()
-    const { userId, actor } = useAuth()
-    const userName = actor ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() : null
-    const { role } = useUserRole(userId, userName)
+    const { role } = useUserRole()
 
     const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
     const isAdmin = role === 'ADMIN'
