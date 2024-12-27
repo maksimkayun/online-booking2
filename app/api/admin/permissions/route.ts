@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
-import { auth } from "@clerk/nextjs/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET() {
     try {
-        const { userId } = await auth();
-
-        if (!userId) {
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        // Проверяем, является ли текущий пользователь админом
-        const currentUserPermission = await prismadb.userPermission.findUnique({
-            where: { userId }
-        });
-
-        if (currentUserPermission?.role !== 'ADMIN') {
-            return new NextResponse("Forbidden", { status: 403 });
-        }
-
-        const permissions = await prismadb.userPermission.findMany();
+        const permissions = await prismadb.user.findMany();
         return NextResponse.json(permissions);
     } catch (error) {
         console.error('[PERMISSIONS_GET]', error);
@@ -29,31 +20,31 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
         const body = await req.json();
         const { targetUserId, role, userName } = body;
 
-        if (!userId) {
+        if (!session?.user) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
         // Проверяем, является ли текущий пользователь админом
-        const currentUserPermission = await prismadb.userPermission.findUnique({
-            where: { userId }
+        const currentUserPermission = await prismadb.user.findUnique({
+            where: { email: session.user.email ?? "" }
         });
 
         if (currentUserPermission?.role !== 'ADMIN') {
             return new NextResponse("Forbidden", { status: 403 });
         }
 
-        const updatedPermission = await prismadb.userPermission.upsert({
-            where: { userId: targetUserId },
+        const updatedPermission = await prismadb.user.upsert({
+            where: { email: targetUserId },
             update: {
                 role,
                 userName: userName || null
             },
             create: {
-                userId: targetUserId,
+                email: targetUserId,
                 role,
                 userName: userName || null
             }

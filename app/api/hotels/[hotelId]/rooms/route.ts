@@ -1,26 +1,25 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
-import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
     req: Request,
     { params }: { params: { hotelId: string } }
 ) {
     try {
-        const { userId } = await auth();
+        // const { userId } = await auth();
         const body = await req.json();
 
         const { title, description, image, roomPrice } = body;
 
-        if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
-        }
+        // if (!userId) {
+        //     return new NextResponse("Unauthorized", { status: 401 });
+        // }
 
         // Проверяем, является ли пользователь владельцем отеля
         const hotel = await prismadb.hotel.findUnique({
             where: {
                 id: params.hotelId,
-                userId,
+                // userId,
             },
         });
 

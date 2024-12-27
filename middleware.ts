@@ -1,52 +1,72 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
-import { getUserRole } from '@/lib/check-permissions';
-import { NextRequest } from 'next/server';
+import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
 const publicRoutes = [
-    '/sign-in(.*)',
-    '/sign-up(.*)',
     '/',
-    '/hotel/:path*/book',    // Изменено для поддержки динамических путей
-    '/my-bookings',
-    '/api/bookings(.*)',
-    '/api/hotels(.*)',
-    '/api/mybookings(.*)',
-    '/api/auth/uploadthing'
+    '/auth/signin',
+    '/auth/signup',
+    '/api/auth/(.*)',
+    '/api/register',
+    '/api/hotels',
 ];
 
-// Маршруты только для админов и менеджеров
 const managerRoutes = [
-    '/hotel/new',           // Создание нового отеля
-    '/hotel/:path*'         // Изменено для поддержки динамических путей
+    '/hotel/new',
+    '/hotel/(.*)/(edit|rooms)',
 ];
 
-export default clerkMiddleware(async (auth, req: NextRequest) => {
-    const isPublicRoute = createRouteMatcher(publicRoutes);
-    const isManagerRoute = createRouteMatcher(managerRoutes);
+const adminRoutes = [
+    '/admin/(.*)',
+];
 
-    if (isManagerRoute(req)) {
-        const { userId } = await auth();
-        if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
+export default withAuth(
+    function middleware(req) {
+        const token = req.nextauth.token;
+        const pathname = req.nextUrl.pathname;
+
+        // Публичные маршруты доступны всем
+        if (publicRoutes.some(route =>
+            pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`))
+        )) {
+            return NextResponse.next();
         }
 
-        const role = await getUserRole(userId);
-        if (role !== 'ADMIN' && role !== 'MANAGER') {
-            return Response.redirect(new URL('/', req.url));
+        // Для остальных маршрутов требуется авторизация
+        if (!token) {
+            const signInUrl = new URL('/auth/signin', req.url);
+            signInUrl.searchParams.set('callbackUrl', pathname);
+            return NextResponse.redirect(signInUrl);
         }
-    }
 
-    if (!isPublicRoute(req) && !isManagerRoute(req)) {
-        await auth.protect();
-    }
+        // Проверка прав для маршрутов менеджера
+        if (managerRoutes.some(route =>
+            pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`))
+        )) {
+            if (!token.role || (token.role !== 'ADMIN' && token.role !== 'MANAGER')) {
+                return NextResponse.redirect(new URL('/', req.url));
+            }
+        }
 
-    return NextResponse.next();
-});
+        // Проверка прав для маршрутов администратора
+        if (adminRoutes.some(route =>
+            pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`))
+        )) {
+            if (!token.role || token.role !== 'ADMIN') {
+                return NextResponse.redirect(new URL('/', req.url));
+            }
+        }
+
+        return NextResponse.next();
+    },
+    {
+        callbacks: {
+            authorized: () => true // Отключаем стандартную проверку авторизации
+        },
+    }
+);
 
 export const config = {
     matcher: [
         '/((?!_next/static|_next/image|favicon.ico).*)',
-        '/api/:path*'
     ],
 };

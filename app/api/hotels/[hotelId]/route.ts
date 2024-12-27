@@ -1,20 +1,18 @@
-// app/api/hotels/[hotelId]/route.ts
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
-import {auth} from "@clerk/nextjs/server";
 
 export async function PATCH(
     req: Request,
     { params }: { params: { hotelId: string } }
 ) {
     try {
-        const { userId } = await auth();
+        // const { userId } = await auth();
         const body = await req.json();
         const { title, description, image } = body;
 
-        if (!userId) {
-            return new NextResponse("Не авторизован", { status: 401 });
-        }
+        // if (!userId) {
+        //     return new NextResponse("Не авторизован", { status: 401 });
+        // }
 
         if (!title) {
             return new NextResponse("Название обязательно", { status: 400 });
@@ -31,7 +29,7 @@ export async function PATCH(
         const hotel = await prismadb.hotel.update({
             where: {
                 id: params.hotelId,
-                userId,
+                // userId,
             },
             data: {
                 title,

@@ -31,3 +31,8 @@ npx prisma migrate reset
 npx prisma migrate dev --name remove_unused_fields
 npx prisma generate
 ```
+
+
+# Auth
+npm install next-auth @auth/prisma-adapter bcryptjs
+npm install --save-dev @types/bcryptjs

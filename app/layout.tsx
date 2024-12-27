@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
-import { ClerkProvider } from '@clerk/nextjs'
 import NavBar from "@/components/layout/NavBar";
 import Container from "@/components/Container";
 import { Toaster } from "@/components/ui/toaster";
+import {SessionProvider} from "next-auth/react";
 
 export const metadata: Metadata = {
     title: "Online booking",
@@ -17,7 +17,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ClerkProvider dynamic={true}>
+        <SessionProvider>
             <html lang="en" suppressHydrationWarning>
             <body className={GeistSans.className}>
             <div className="min-h-screen flex flex-col bg-secondary">
@@ -33,6 +33,6 @@ export default function RootLayout({
             <Toaster />
             </body>
             </html>
-        </ClerkProvider>
+        </SessionProvider>
     );
 }

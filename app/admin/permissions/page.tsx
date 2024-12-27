@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { UserRole } from "@prisma/client";
 import { Loader2 } from "lucide-react";
+import {withClientAuthHOC} from "@/middleware";
 
-export default function AdminPermissionsPage() {
+function AdminPermissionsPage() {
     const { permissions, isLoading, mutate, userName } = usePermissions();
     const [newUserId, setNewUserId] = useState('');
     const [newRole, setNewRole] = useState<UserRole>('USER');
@@ -135,3 +136,5 @@ export default function AdminPermissionsPage() {
         </div>
     );
 }
+
+export default withClientAuthHOC(AdminPermissionsPage, ['ADMIN']);

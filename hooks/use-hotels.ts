@@ -12,10 +12,9 @@ export function useHotels() {
         '/api/hotels',
         fetcher,
         {
-            refreshInterval: 3000,
-            revalidateOnFocus: true,
-            revalidateOnReconnect: true,
-            dedupingInterval: 5000,
+            refreshInterval: 0, // Убираем автообновление
+            revalidateOnFocus: false, // Отключаем ревалидацию при фокусе
+            revalidateIfStale: false
         }
     );
 
@@ -23,6 +22,6 @@ export function useHotels() {
         hotels: data || [],
         isLoading,
         isError: error,
-        mutate,
+        mutate
     };
 }

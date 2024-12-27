@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@clerk/nextjs"
 import { BookOpenCheck, ChevronsUpDown, Hotel, Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {

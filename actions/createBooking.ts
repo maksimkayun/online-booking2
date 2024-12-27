@@ -1,7 +1,6 @@
 'use server'
 
 import { redirect } from 'next/navigation';
-import { auth } from "@clerk/nextjs/server";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
@@ -17,13 +16,13 @@ export async function createBooking(
     totalPrice: number
 ) {
     try {
-        const { getToken } = await auth();
+        // const { getToken } = await auth();
         // Получаем токен для авторизации
-        const token = await getToken();
+        // const token = await getToken();
 
-        if (!token) {
-            throw new Error('Unauthorized: No token available');
-        }
+        // if (!token) {
+        //     throw new Error('Unauthorized: No token available');
+        // }
 
         const url = new URL('/api/bookings', APP_URL);
 
@@ -31,7 +30,7 @@ export async function createBooking(
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
+                // 'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
                 roomId,

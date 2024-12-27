@@ -1,29 +1,16 @@
-// app/api/hotels/route.ts
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
-import {auth} from "@clerk/nextjs/server";
+import {getServerSession} from "next-auth/next";
+import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
         const body = await req.json();
-
         const { title, description, image } = body;
 
-        if (!userId) {
-            return new NextResponse("Не авторизован", { status: 401 });
-        }
-
-        if (!title) {
-            return new NextResponse("Название обязательно", { status: 400 });
-        }
-
-        if (!description) {
-            return new NextResponse("Описание обязательно", { status: 400 });
-        }
-
-        if (!image) {
-            return new NextResponse("Изображение обязательно", { status: 400 });
+        if (!session?.user?.email) {
+            return new NextResponse("Unauthorized", { status: 401 });
         }
 
         const hotel = await prismadb.hotel.create({
@@ -31,14 +18,14 @@ export async function POST(req: Request) {
                 title,
                 description,
                 image,
-                userId
+                userEmail: session.user.email
             }
         });
 
         return NextResponse.json(hotel);
     } catch (error) {
-        console.log('[HOTELS_POST]', error);
-        return new NextResponse("Внутренняя ошибка сервера", { status: 500 });
+        console.error('[HOTELS_POST]', error);
+        return new NextResponse("Internal error", { status: 500 });
     }
 }
 

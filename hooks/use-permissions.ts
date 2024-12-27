@@ -1,6 +1,6 @@
-import { useAuth } from "@clerk/nextjs";
 import useSWR from "swr";
-import React from "react";
+import { useSession } from "next-auth/react";
+import { UserRole } from "@prisma/client";
 
 const fetcher = async (url: string) => {
     const res = await fetch(url);
@@ -9,11 +9,10 @@ const fetcher = async (url: string) => {
 };
 
 export function usePermissions() {
-    const { userId, actor } = useAuth();
-    const userName = actor?.sub || null;
+    const { data: session } = useSession();
 
     const { data, error, isLoading, mutate } = useSWR(
-        userId ? '/api/admin/permissions' : null,
+        session?.user ? '/api/admin/permissions' : null,
         fetcher,
         {
             refreshInterval: 5000,
@@ -26,37 +25,16 @@ export function usePermissions() {
         isLoading,
         isError: error,
         mutate,
-        userName
+        userName: session?.user?.name || null
     };
 }
 
-export function useUserRole(userId?: string | null, userName?: string | null) {
-    const { data, error, isLoading, mutate } = useSWR(
-        userId ? `/api/admin/permissions/${userId}` : null,
-        fetcher,
-        {
-            fallbackData: { role: 'USER', userName: userName || null },
-            revalidateOnFocus: false,
-            revalidateOnReconnect: false
-        }
-    );
-
-    // При изменении userName обновляем данные в БД
-    React.useEffect(() => {
-        if (userId && userName && data?.userName !== userName) {
-            fetch(`/api/admin/permissions/${userId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userName }),
-            }).then(() => mutate());
-        }
-    }, [userId, userName, data?.userName, mutate]);
-
+export function useUserRole() {
+    const { data: session } = useSession();
     return {
-        role: data?.role || 'USER',
-        isLoading,
-        isError: error
+        role: session?.user?.role as UserRole || 'USER',
+        isAdmin: session?.user?.role === 'ADMIN',
+        isManager: session?.user?.role === 'MANAGER',
+        isAdminOrManager: ['ADMIN', 'MANAGER'].includes(session?.user?.role || '')
     };
 }

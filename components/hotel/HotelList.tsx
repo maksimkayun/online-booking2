@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Hotel } from "@prisma/client";
-import { useAuth } from "@clerk/nextjs";
 import { Loader2, Pencil, Trash } from "lucide-react";
 import { useUserRole } from "@/hooks/use-permissions";
 import { useState } from "react";
@@ -21,6 +20,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import {useSession} from "next-auth/react";
 
 interface HotelListProps {
     hotels: Hotel[];
@@ -28,8 +28,8 @@ interface HotelListProps {
 
 const HotelList = ({ hotels }: HotelListProps) => {
     const router = useRouter();
-    const { userId } = useAuth();
-    const { role } = useUserRole(userId);
+    const { data: session } = useSession()
+    const { role } = useUserRole();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const { toast } = useToast();
 
@@ -60,6 +60,7 @@ const HotelList = ({ hotels }: HotelListProps) => {
             });
 
             router.refresh();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -83,7 +84,7 @@ const HotelList = ({ hotels }: HotelListProps) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hotels.map((hotel) => {
-                const isOwner = hotel.userId === userId;
+                const isOwner = hotel.userEmail === session?.user?.email;
 
                 return (
                     <Card key={hotel.id} className="overflow-hidden">

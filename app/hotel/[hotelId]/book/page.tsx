@@ -1,7 +1,8 @@
 import { getHotelById } from "@/actions/getHotelById";
 import HotelDetails from "@/components/hotel/HotelDetails";
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import {getServerSession} from "next-auth/next";
+import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 
 interface BookingPageProps {
     params: {
@@ -10,9 +11,9 @@ interface BookingPageProps {
 }
 
 export default async function BookingPage({ params }: BookingPageProps) {
-    const { userId } = await auth();
 
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
         redirect('/sign-in');
     }
 
@@ -22,7 +23,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
         redirect('/');
     }
 
-    const isOwner = hotel.userId === userId;
+    const isOwner = hotel.userEmail === session?.user?.email;
 
     // Владелец не может бронировать свой собственный отель
     if (isOwner) {
