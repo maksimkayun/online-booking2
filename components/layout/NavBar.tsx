@@ -1,16 +1,22 @@
 'use client'
 
-import {useAuth, UserButton} from "@clerk/nextjs";
+import { useAuth, UserButton } from "@clerk/nextjs";
 import Container from "@/components/Container";
 import Image from "next/image";
-import {useRouter} from "next/navigation";
-import {Button} from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import SearchInput from "@/components/SearchInput";
-import {NavMenu} from "@/components/layout/NavMenu";
+import { NavMenu } from "@/components/layout/NavMenu";
 
 const NavBar = () => {
     const router = useRouter();
-    const { userId } = useAuth();
+    const { userId, isLoaded } = useAuth();
+
+    // Добавляем проверку на загрузку
+    if (!isLoaded) {
+        return null; // или показать loading state
+    }
+
     return (
         <div className="sticky top-0 border border-b-primary/10 bg-secondary z-50">
             <Container>

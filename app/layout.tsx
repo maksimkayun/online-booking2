@@ -24,7 +24,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ClerkProvider>
+        <ClerkProvider dynamic={true}>
             <html lang="en" suppressHydrationWarning>
             <body className={GeistSans.className}>
             <AuthInitializer />
