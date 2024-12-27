@@ -8,7 +8,8 @@ const fetcher = async (url: string) => {
 };
 
 export function usePermissions() {
-    const { userId } = useAuth();
+    const { userId, actor } = useAuth();
+    const userName = actor?.sub || null;
 
     const { data, error, isLoading, mutate } = useSWR(
         userId ? '/api/admin/permissions' : null,
@@ -23,7 +24,8 @@ export function usePermissions() {
         permissions: data,
         isLoading,
         isError: error,
-        mutate
+        mutate,
+        userName
     };
 }
 
@@ -32,7 +34,7 @@ export function useUserRole(userId?: string | null) {
         userId ? `/api/admin/permissions/${userId}` : null,
         fetcher,
         {
-            fallbackData: { role: 'USER' }, // Значение по умолчанию
+            fallbackData: { role: 'USER' },
             revalidateOnFocus: false,
             revalidateOnReconnect: false
         }

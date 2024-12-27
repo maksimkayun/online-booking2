@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     try {
         const { userId } = await auth();
         const body = await req.json();
-        const { targetUserId, role } = body;
+        const { targetUserId, role, userName } = body;
 
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
@@ -48,10 +48,14 @@ export async function POST(req: Request) {
 
         const updatedPermission = await prismadb.userPermission.upsert({
             where: { userId: targetUserId },
-            update: { role },
+            update: {
+                role,
+                userName: userName || null
+            },
             create: {
                 userId: targetUserId,
-                role
+                role,
+                userName: userName || null
             }
         });
 

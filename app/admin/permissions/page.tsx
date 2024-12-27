@@ -4,20 +4,14 @@ import { useState } from 'react';
 import { usePermissions } from "@/hooks/use-permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { UserRole } from "@prisma/client";
 import { Loader2 } from "lucide-react";
 
 export default function AdminPermissionsPage() {
-    const { permissions, isLoading, mutate } = usePermissions();
+    const { permissions, isLoading, mutate, userName } = usePermissions();
     const [newUserId, setNewUserId] = useState('');
     const [newRole, setNewRole] = useState<UserRole>('USER');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +30,7 @@ export default function AdminPermissionsPage() {
                 body: JSON.stringify({
                     targetUserId: newUserId,
                     role: newRole,
+                    userName: userName
                 }),
             });
 
@@ -50,7 +45,6 @@ export default function AdminPermissionsPage() {
 
             setNewUserId('');
             mutate();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -119,6 +113,11 @@ export default function AdminPermissionsPage() {
                                     <CardContent className="flex items-center justify-between p-4">
                                         <div>
                                             <p className="font-medium">{permission.userId}</p>
+                                            {permission.userName && (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Имя: {permission.userName}
+                                                </p>
+                                            )}
                                             <p className="text-sm text-muted-foreground">
                                                 Роль: {permission.role}
                                             </p>
