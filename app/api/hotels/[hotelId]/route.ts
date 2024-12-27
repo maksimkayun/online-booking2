@@ -71,3 +71,36 @@ export async function GET(
         return new NextResponse("Internal error", { status: 500 });
     }
 }
+
+export async function DELETE(
+    req: Request,
+    { params }: { params: { hotelId: string } }
+) {
+    try {
+        const { userId } = await auth();
+
+        if (!userId) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
+        // Проверяем, является ли пользователь админом
+        const userPermission = await prismadb.userPermission.findUnique({
+            where: { userId }
+        });
+
+        if (userPermission?.role !== 'ADMIN') {
+            return new NextResponse("Forbidden", { status: 403 });
+        }
+
+        const hotel = await prismadb.hotel.delete({
+            where: {
+                id: params.hotelId,
+            },
+        });
+
+        return NextResponse.json(hotel);
+    } catch (error) {
+        console.log('[HOTEL_DELETE]', error);
+        return new NextResponse("Internal error", { status: 500 });
+    }
+}

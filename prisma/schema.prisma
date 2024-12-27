@@ -56,8 +56,8 @@ model Booking {
   hotelId    String
   roomId     String
   bookedAt   DateTime @default(now())
-  Hotel      Hotel    @relation(fields: [hotelId], references: [id])
-  Room       Room     @relation(fields: [roomId], references: [id])
+  Hotel      Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  Room       Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([hotelId])
   @@index([roomId])

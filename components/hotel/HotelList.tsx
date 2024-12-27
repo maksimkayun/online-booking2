@@ -1,4 +1,3 @@
-// components/hotel/HotelList.tsx
 'use client';
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,21 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Hotel } from "@prisma/client";
 import { useAuth } from "@clerk/nextjs";
-import { Pencil } from "lucide-react";
+import { Loader2, Pencil, Trash } from "lucide-react";
+import { useUserRole } from "@/hooks/use-permissions";
+import { useState } from "react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface HotelListProps {
     hotels: Hotel[];
@@ -16,6 +29,47 @@ interface HotelListProps {
 const HotelList = ({ hotels }: HotelListProps) => {
     const router = useRouter();
     const { userId } = useAuth();
+    const { role } = useUserRole(userId);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const { toast } = useToast();
+
+    const isAdmin = role === 'ADMIN';
+    const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER';
+
+    const handleNavigate = (path: string) => {
+        // Используем setTimeout чтобы дать время на закрытие диалога/дропдауна
+        setTimeout(() => {
+            router.push(path);
+        }, 0);
+    };
+
+    const handleDelete = async (hotelId: string) => {
+        try {
+            setDeletingId(hotelId);
+            const response = await fetch(`/api/hotels/${hotelId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete hotel');
+            }
+
+            toast({
+                title: "Успешно!",
+                description: "Отель удален",
+            });
+
+            router.refresh();
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Ошибка!",
+                description: "Не удалось удалить отель",
+            });
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     if (!hotels?.length) {
         return (
@@ -25,14 +79,6 @@ const HotelList = ({ hotels }: HotelListProps) => {
             </div>
         );
     }
-
-    const handleBooking = (hotelId: string) => {
-        if (!userId) {
-            router.push('/sign-in');
-            return;
-        }
-        router.push(`/hotel/${hotelId}/book`);
-    };
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -58,32 +104,63 @@ const HotelList = ({ hotels }: HotelListProps) => {
                             </p>
                         </CardContent>
                         <CardFooter className="flex gap-2">
-                            {isOwner ? (
-                                // Владельцу показываем кнопку редактирования
+                            {(isOwner && isAdminOrManager) ? (
                                 <Button
-                                    onClick={() => router.push(`/hotel/${hotel.id}`)}
+                                    onClick={() => handleNavigate(`/hotel/${hotel.id}`)}
                                     className="w-full"
                                 >
                                     <Pencil className="w-4 h-4 mr-2" />
                                     Редактировать
                                 </Button>
                             ) : (
-                                // Остальным пользователям показываем кнопки подробнее и забронировать
                                 <>
                                     <Button
-                                        onClick={() => router.push(`/hotel/${hotel.id}`)}
+                                        onClick={() => handleNavigate(`/hotel/${hotel.id}`)}
                                         variant="outline"
                                         className="flex-1"
                                     >
                                         Подробнее
                                     </Button>
                                     <Button
-                                        onClick={() => handleBooking(hotel.id)}
+                                        onClick={() => handleNavigate(`/hotel/${hotel.id}/book`)}
                                         className="flex-1"
                                     >
                                         Забронировать
                                     </Button>
                                 </>
+                            )}
+                            {isAdmin && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive">
+                                            {deletingId === hotel.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Trash className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                                Удалить отель?
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Это действие нельзя отменить. Отель будет удален,
+                                                а все связанные с ним бронирования будут отменены.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={() => handleDelete(hotel.id)}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                                Удалить
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             )}
                         </CardFooter>
                     </Card>

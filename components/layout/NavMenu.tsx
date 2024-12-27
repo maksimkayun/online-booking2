@@ -9,6 +9,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useUserRole } from "@/hooks/use-permissions"
@@ -16,59 +17,66 @@ import { useUserRole } from "@/hooks/use-permissions"
 export function NavMenu() {
     const router = useRouter()
     const { userId, actor } = useAuth()
-
-    // Формируем имя пользователя из actor если он доступен
     const userName = actor ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() : null
-
     const { role } = useUserRole(userId, userName)
 
     const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
     const isAdmin = role === 'ADMIN'
 
+    const handleNavigate = (path: string) => {
+        // Используем setTimeout чтобы дать время на закрытие диалога/дропдауна
+        setTimeout(() => {
+            router.push(path);
+        }, 0);
+    };
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
-                    <ChevronsUpDown />
+                    <ChevronsUpDown className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-[200px]">
+                {isAdminOrManager && (
+                    <>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handleNavigate('/hotel/new')}
+                        >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Добавить отель
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handleNavigate('/my-hotels')}
+                        >
+                            <Hotel className="mr-2 h-4 w-4" />
+                            Мои отели
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                    </>
+                )}
+
                 {isAdmin && (
-                    <DropdownMenuItem
-                        className="cursor-pointer flex gap-2 items-center"
-                        onClick={() => router.push('/admin/permissions')}
-                    >
-                        <Settings size={15} />
-                        <span>Админ-панель</span>
-                    </DropdownMenuItem>
-                )}
-
-                {isAdminOrManager && (
-                    <DropdownMenuItem
-                        className="cursor-pointer flex gap-2 items-center"
-                        onClick={() => router.push('/hotel/new')}
-                    >
-                        <Plus size={15} />
-                        <span>Добавить отель</span>
-                    </DropdownMenuItem>
-                )}
-
-                {isAdminOrManager && (
-                    <DropdownMenuItem
-                        className="cursor-pointer flex gap-2 items-center"
-                        onClick={() => router.push('/my-hotels')}
-                    >
-                        <Hotel size={15} />
-                        <span>Мои отели</span>
-                    </DropdownMenuItem>
+                    <>
+                        <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => handleNavigate('/admin/permissions')}
+                        >
+                            <Settings className="mr-2 h-4 w-4" />
+                            Админ-панель
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                    </>
                 )}
 
                 <DropdownMenuItem
-                    className="cursor-pointer flex gap-2 items-center"
-                    onClick={() => router.push('/my-bookings')}
+                    className="cursor-pointer"
+                    onClick={() => handleNavigate('/my-bookings')}
                 >
-                    <BookOpenCheck size={15} />
-                    <span>Мои брони</span>
+                    <BookOpenCheck className="mr-2 h-4 w-4" />
+                    Мои брони
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
