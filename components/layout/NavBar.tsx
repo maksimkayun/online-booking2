@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import { useAuth, UserButton } from "@clerk/nextjs";
+import {useAuth, UserButton} from "@clerk/nextjs";
 import Container from "@/components/Container";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,9 +12,8 @@ const NavBar = () => {
     const router = useRouter();
     const { userId, isLoaded } = useAuth();
 
-    // Добавляем проверку на загрузку
     if (!isLoaded) {
-        return null; // или показать loading state
+        return null;
     }
 
     return (
@@ -23,7 +22,15 @@ const NavBar = () => {
                 <div className='flex justify-between items-center'>
                     <div className="flex items-center gap-1 cursor-pointer"
                          onClick={() => router.push('/')}>
-                        <Image src='/logo.svg' alt="logo" width='30' height="30"/>
+                        <div className="relative w-[30px] h-[30px]">
+                            <Image
+                                src="/logo.svg"
+                                alt="logo"
+                                fill
+                                priority
+                                sizes="30px"
+                            />
+                        </div>
                         <div className="font-bold text-xl">Online booking</div>
                     </div>
                     <SearchInput />

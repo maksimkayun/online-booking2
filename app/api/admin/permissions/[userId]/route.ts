@@ -6,7 +6,6 @@ export async function GET(
     { params }: { params: { userId: string } }
 ) {
     try {
-        // Проверяем существование пользователя
         const userPermission = await prismadb.userPermission.findUnique({
             where: {
                 userId: params.userId
@@ -14,7 +13,6 @@ export async function GET(
         });
 
         if (!userPermission) {
-            // Если пользователя нет, создаем с ролью USER
             const newUserPermission = await prismadb.userPermission.create({
                 data: {
                     userId: params.userId,
@@ -27,6 +25,35 @@ export async function GET(
         return NextResponse.json(userPermission);
     } catch (error) {
         console.error('[USER_PERMISSION_GET]', error);
+        return new NextResponse("Internal error", { status: 500 });
+    }
+}
+
+export async function POST(
+    req: Request,
+    { params }: { params: { userId: string } }
+) {
+    try {
+        const body = await req.json();
+        const { userName } = body;
+
+        const userPermission = await prismadb.userPermission.upsert({
+            where: {
+                userId: params.userId
+            },
+            update: {
+                userName
+            },
+            create: {
+                userId: params.userId,
+                userName,
+                role: 'USER'
+            }
+        });
+
+        return NextResponse.json(userPermission);
+    } catch (error) {
+        console.error('[USER_PERMISSION_POST]', error);
         return new NextResponse("Internal error", { status: 500 });
     }
 }

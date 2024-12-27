@@ -15,8 +15,12 @@ import { useUserRole } from "@/hooks/use-permissions"
 
 export function NavMenu() {
     const router = useRouter()
-    const { userId } = useAuth()
-    const { role } = useUserRole(userId)
+    const { userId, actor } = useAuth()
+
+    // Формируем имя пользователя из actor если он доступен
+    const userName = actor ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() : null
+
+    const { role } = useUserRole(userId, userName)
 
     const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
     const isAdmin = role === 'ADMIN'
@@ -29,7 +33,6 @@ export function NavMenu() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                {/* Админ-панель только для админов */}
                 {isAdmin && (
                     <DropdownMenuItem
                         className="cursor-pointer flex gap-2 items-center"
@@ -40,7 +43,6 @@ export function NavMenu() {
                     </DropdownMenuItem>
                 )}
 
-                {/* Добавление отеля для админов и менеджеров */}
                 {isAdminOrManager && (
                     <DropdownMenuItem
                         className="cursor-pointer flex gap-2 items-center"
@@ -51,7 +53,6 @@ export function NavMenu() {
                     </DropdownMenuItem>
                 )}
 
-                {/* Менеджмент отелей для админов и менеджеров */}
                 {isAdminOrManager && (
                     <DropdownMenuItem
                         className="cursor-pointer flex gap-2 items-center"
@@ -62,7 +63,6 @@ export function NavMenu() {
                     </DropdownMenuItem>
                 )}
 
-                {/* Брони доступны всем авторизованным пользователям */}
                 <DropdownMenuItem
                     className="cursor-pointer flex gap-2 items-center"
                     onClick={() => router.push('/my-bookings')}
