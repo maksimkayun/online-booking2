@@ -6,6 +6,7 @@ export async function GET(
     { params }: { params: { userId: string } }
 ) {
     try {
+        // Проверяем существование пользователя
         const userPermission = await prismadb.userPermission.findUnique({
             where: {
                 userId: params.userId
@@ -13,8 +14,14 @@ export async function GET(
         });
 
         if (!userPermission) {
-            // Если запись не найдена, возвращаем роль по умолчанию
-            return NextResponse.json({ role: 'USER' });
+            // Если пользователя нет, создаем с ролью USER
+            const newUserPermission = await prismadb.userPermission.create({
+                data: {
+                    userId: params.userId,
+                    role: 'USER'
+                }
+            });
+            return NextResponse.json(newUserPermission);
         }
 
         return NextResponse.json(userPermission);
