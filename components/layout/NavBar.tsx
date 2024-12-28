@@ -1,4 +1,3 @@
-// components/layout/NavBar.tsx
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
@@ -16,7 +15,8 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-import { Hotel } from "lucide-react"; // Добавляем иконку как запасной вариант
+import {Hotel, User} from "lucide-react";
+import {ExitIcon} from "@radix-ui/react-icons"; // Добавляем иконку как запасной вариант
 
 const NavBar = () => {
     const router = useRouter();
@@ -25,6 +25,13 @@ const NavBar = () => {
 
     const handleSignOut = () => {
         signOut({ callbackUrl: '/' });
+    };
+
+    const handleNavigate = (path: string) => {
+        // Используем setTimeout чтобы дать время на закрытие диалога/дропдауна
+        setTimeout(() => {
+            router.push(path);
+        }, 0);
     };
 
     const handleLogoError = () => {
@@ -78,7 +85,15 @@ const NavBar = () => {
                                     </Avatar>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={() => handleNavigate('/profile')}
+                                    >
+                                        <User className="mr-2 h-4 w-4" />
+                                        Профиль
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={handleSignOut}>
+                                        <ExitIcon className="mr-2 h-4 w-4" />
                                         Выйти
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
