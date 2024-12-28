@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
+import {getServerSession} from "next-auth/next";
+import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 
 export async function PATCH(
     req: Request,
     { params }: { params: { hotelId: string; roomId: string } }
 ) {
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
         const body = await req.json();
         const { title, description, image, roomPrice } = body;
 
-        if (!userId) {
+        if (!session?.user?.email) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
@@ -34,7 +36,7 @@ export async function PATCH(
         const hotel = await prismadb.hotel.findUnique({
             where: {
                 id: params.hotelId,
-                userId,
+                userEmail: session.user.email,
             },
         });
 
@@ -67,9 +69,9 @@ export async function DELETE(
     { params }: { params: { hotelId: string; roomId: string } }
 ) {
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
 
-        if (!userId) {
+        if (!session?.user?.email) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
@@ -77,7 +79,7 @@ export async function DELETE(
         const hotel = await prismadb.hotel.findUnique({
             where: {
                 id: params.hotelId,
-                userId,
+                userEmail: session.user.email,
             },
         });
 

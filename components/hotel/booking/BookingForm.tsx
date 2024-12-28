@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState } from "react";
 import { Room } from "@prisma/client";
 import { Calendar } from "@/components/ui/calendar";

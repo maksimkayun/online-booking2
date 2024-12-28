@@ -1,3 +1,5 @@
+'use client';
+
 import { Hotel, Room } from "@prisma/client";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";

@@ -1,3 +1,4 @@
+'use client';
 import { Hotel, Room } from "@prisma/client";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
