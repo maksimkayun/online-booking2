@@ -6,13 +6,43 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import HotelList from "./HotelList";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { useSocket } from "@/lib/socket";
+import { Hotel } from "@prisma/client";
 
 export default function HotelsClientWrapper() {
     const { data: session } = useSession();
-    const { hotels, isLoading, isError } = useHotels();
+    const { hotels, isLoading, isError, mutate } = useHotels();
     const router = useRouter();
+    const { socket } = useSocket();
     const isAdminOrManager = session?.user?.role === 'ADMIN' || session?.user?.role === 'MANAGER';
+
+    useEffect(() => {
+        if (!socket) return;
+
+        // Подписываемся на обновления списка отелей
+        socket.on('hotel:created', (newHotel: Hotel) => {
+            mutate([...(hotels || []), newHotel]);
+        });
+
+        socket.on('hotel:updated', (updatedHotel: Hotel) => {
+            mutate(
+                hotels?.map((hotel) =>
+                    hotel.id === updatedHotel.id ? updatedHotel : hotel
+                )
+            );
+        });
+
+        socket.on('hotel:deleted', (hotelId: string) => {
+            mutate(hotels?.filter((hotel) => hotel.id !== hotelId));
+        });
+
+        return () => {
+            socket.off('hotel:created');
+            socket.off('hotel:updated');
+            socket.off('hotel:deleted');
+        };
+    }, [socket, hotels, mutate]);
 
     if (isError) {
         return (

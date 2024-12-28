@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
-import {getServerSession} from "next-auth/next";
-import {authOptions} from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
     try {
@@ -21,6 +21,12 @@ export async function POST(req: Request) {
                 userEmail: session.user.email
             }
         });
+
+        // Отправляем событие через веб-сокет
+        const res = req as any;
+        if (res.socket && res.socket.server && res.socket.server.io) {
+            res.socket.server.io.emit('hotel:created', hotel);
+        }
 
         return NextResponse.json(hotel);
     } catch (error) {

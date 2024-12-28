@@ -1,35 +1,43 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function PATCH(
     req: Request,
     { params }: { params: { hotelId: string } }
 ) {
     try {
-        // const { userId } = await auth();
+        const session = await getServerSession(authOptions);
         const body = await req.json();
         const { title, description, image } = body;
 
-        // if (!userId) {
-        //     return new NextResponse("Не авторизован", { status: 401 });
-        // }
-
-        if (!title) {
-            return new NextResponse("Название обязательно", { status: 400 });
+        if (!session?.user?.email) {
+            return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        if (!description) {
-            return new NextResponse("Описание обязательно", { status: 400 });
-        }
-
-        if (!image) {
-            return new NextResponse("Изображение обязательно", { status: 400 });
-        }
-
-        const hotel = await prismadb.hotel.update({
+        // Проверяем, является ли пользователь владельцем отеля или администратором
+        const hotel = await prismadb.hotel.findUnique({
             where: {
                 id: params.hotelId,
-                // userId,
+            }
+        });
+
+        if (!hotel) {
+            return new NextResponse("Hotel not found", { status: 404 });
+        }
+
+        // Проверяем права на редактирование
+        const isOwner = hotel.userEmail === session.user.email;
+        const isAdminOrManager = session.user.role === 'ADMIN' || session.user.role === 'MANAGER';
+
+        if (!isOwner && !isAdminOrManager) {
+            return new NextResponse("Forbidden", { status: 403 });
+        }
+
+        const updatedHotel = await prismadb.hotel.update({
+            where: {
+                id: params.hotelId,
             },
             data: {
                 title,
@@ -38,10 +46,16 @@ export async function PATCH(
             },
         });
 
-        return NextResponse.json(hotel);
+        // Отправляем событие через веб-сокет
+        const res = req as any;
+        if (res.socket?.server?.io) {
+            res.socket.server.io.emit('hotel:updated', updatedHotel);
+        }
+
+        return NextResponse.json(updatedHotel);
     } catch (error) {
         console.log('[HOTEL_PATCH]', error);
-        return new NextResponse("Внутренняя ошибка сервера", { status: 500 });
+        return new NextResponse("Internal error", { status: 500 });
     }
 }
 
@@ -75,28 +89,44 @@ export async function DELETE(
     { params }: { params: { hotelId: string } }
 ) {
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
 
-        if (!userId) {
+        if (!session?.user?.email) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        // Проверяем, является ли пользователь админом
-        const userPermission = await prismadb.userPermission.findUnique({
-            where: { userId }
+        // Проверяем права на удаление
+        const hotel = await prismadb.hotel.findUnique({
+            where: {
+                id: params.hotelId,
+            }
         });
 
-        if (userPermission?.role !== 'ADMIN') {
+        if (!hotel) {
+            return new NextResponse("Hotel not found", { status: 404 });
+        }
+
+        const isOwner = hotel.userEmail === session.user.email;
+        const isAdmin = session.user.role === 'ADMIN';
+
+        // Только владелец и администратор могут удалять отели
+        if (!isOwner && !isAdmin) {
             return new NextResponse("Forbidden", { status: 403 });
         }
 
-        const hotel = await prismadb.hotel.delete({
+        const deletedHotel = await prismadb.hotel.delete({
             where: {
                 id: params.hotelId,
             },
         });
 
-        return NextResponse.json(hotel);
+        // Отправляем событие через веб-сокет
+        const res = req as any;
+        if (res.socket?.server?.io) {
+            res.socket.server.io.emit('hotel:deleted', params.hotelId);
+        }
+
+        return NextResponse.json(deletedHotel);
     } catch (error) {
         console.log('[HOTEL_DELETE]', error);
         return new NextResponse("Internal error", { status: 500 });
