@@ -52,7 +52,7 @@ export default function ProfileForm() {
         },
     });
 
-    // Обновляем значения формы только при изменении сессии
+    // Используем useEffect только для начальной инициализации значений формы
     useEffect(() => {
         if (session?.user) {
             form.reset({
@@ -63,7 +63,7 @@ export default function ProfileForm() {
                 confirmPassword: "",
             });
         }
-    }, [session, form.reset]); // Используем form.reset вместо form
+    }, [session?.user?.email]); // Зависимость только от email пользователя
 
     async function onSubmit(values: z.infer<typeof profileSchema>) {
         try {
@@ -84,6 +84,16 @@ export default function ProfileForm() {
 
             const updatedUser = await response.json();
 
+            // Обновляем форму новыми значениями сразу после успешного ответа
+            form.reset({
+                ...form.getValues(),
+                name: updatedUser.name,
+                newEmail: updatedUser.email,
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            });
+
             // Обновляем сессию
             await update({
                 ...session,
@@ -99,7 +109,6 @@ export default function ProfileForm() {
                 description: "Профиль обновлен",
             });
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",
