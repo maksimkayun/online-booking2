@@ -8,6 +8,7 @@ const publicRoutes = [
     '/api/auth/(.*)',
     '/api/register',
     '/api/hotels',
+    '/api/socket/(.*)', // Добавляем этот маршрут
 ];
 
 const managerRoutes = [

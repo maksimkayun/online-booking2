@@ -1,12 +1,7 @@
-"use client";
-
-import {GeistSans} from "geist/font/sans";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
-import NavBar from "@/components/layout/NavBar";
-import Container from "@/components/Container";
-import {Toaster} from "@/components/ui/toaster";
-import {SessionProvider} from "next-auth/react";
-import {SocketProvider} from "@/providers/SocketProvider";
+import { Toaster } from "@/components/ui/toaster";
+import ClientLayout from "@/components/layout/ClientLayout";
 
 export default function RootLayout({
                                        children,
@@ -14,24 +9,11 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <SessionProvider>
-            <SocketProvider>
-                <html lang="en" suppressHydrationWarning>
-                <body className={GeistSans.className}>
-                <div className="min-h-screen flex flex-col bg-secondary">
-                    <NavBar/>
-                    <main className="flex-grow relative">
-                        <Container>
-                            <div className="main-content">
-                                {children}
-                            </div>
-                        </Container>
-                    </main>
-                </div>
-                <Toaster/>
-                </body>
-                </html>
-            </SocketProvider>
-        </SessionProvider>
+        <html lang="en" suppressHydrationWarning>
+        <body className={GeistSans.className}>
+        <ClientLayout>{children}</ClientLayout>
+        <Toaster />
+        </body>
+        </html>
     );
 }

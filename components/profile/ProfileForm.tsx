@@ -44,14 +44,15 @@ export default function ProfileForm() {
     const form = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: session?.user?.name || "",
-            newEmail: session?.user?.email || "",
+            name: "",
+            newEmail: "",
             currentPassword: "",
             newPassword: "",
             confirmPassword: "",
         },
     });
 
+    // Обновляем значения формы только при изменении сессии
     useEffect(() => {
         if (session?.user) {
             form.reset({
@@ -62,7 +63,7 @@ export default function ProfileForm() {
                 confirmPassword: "",
             });
         }
-    }, [session, form]);
+    }, [session, form.reset]); // Используем form.reset вместо form
 
     async function onSubmit(values: z.infer<typeof profileSchema>) {
         try {
@@ -83,7 +84,7 @@ export default function ProfileForm() {
 
             const updatedUser = await response.json();
 
-            // Обновляем сессию с новыми данными
+            // Обновляем сессию
             await update({
                 ...session,
                 user: {
@@ -93,20 +94,12 @@ export default function ProfileForm() {
                 }
             });
 
-            // Принудительно обновляем значения формы
-            form.reset({
-                name: updatedUser.name,
-                newEmail: updatedUser.email,
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-
             toast({
                 title: "Успешно!",
                 description: "Профиль обновлен",
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",

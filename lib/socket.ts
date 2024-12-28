@@ -12,5 +12,9 @@ export const SocketContext = createContext<SocketContextType>({
 });
 
 export const useSocket = () => {
-    return useContext(SocketContext);
+    const context = useContext(SocketContext);
+    if (!context) {
+        throw new Error('useSocket must be used within a SocketProvider');
+    }
+    return context;
 };
