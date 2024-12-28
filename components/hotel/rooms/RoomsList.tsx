@@ -9,10 +9,17 @@ import { cn } from "@/lib/utils";
 interface RoomsListProps {
     rooms: Room[];
     selectedRoom?: string;
-    onRoomSelect?: (roomId: string) => void;
+    onRoomSelect?: (roomId: string | undefined) => void;
 }
 
 export function RoomsList({ rooms, selectedRoom, onRoomSelect }: RoomsListProps) {
+    const handleRoomClick = (roomId: string) => {
+        // Если комната уже выбрана - снимаем выбор, иначе выбираем новую комнату
+        if (onRoomSelect) {
+            onRoomSelect(selectedRoom === roomId ? undefined : roomId);
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms.map((room) => (
@@ -22,7 +29,7 @@ export function RoomsList({ rooms, selectedRoom, onRoomSelect }: RoomsListProps)
                         "transition-all duration-200 cursor-pointer hover:ring-2 hover:ring-primary/50",
                         selectedRoom === room.id ? 'ring-2 ring-primary' : ''
                     )}
-                    onClick={() => onRoomSelect?.(room.id)}
+                    onClick={() => handleRoomClick(room.id)}
                 >
                     <div className="relative h-48">
                         <Image

@@ -1,12 +1,10 @@
 'use server'
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
-
-if (!APP_URL) {
-    throw new Error('NEXT_PUBLIC_APP_URL must be set in environment variables');
-}
+import { prismadb } from "@/lib/prismadb";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function createBooking(
     roomId: string,
@@ -16,39 +14,72 @@ export async function createBooking(
     totalPrice: number
 ) {
     try {
-        // const { getToken } = await auth();
-        // Получаем токен для авторизации
-        // const token = await getToken();
+        const session = await getServerSession(authOptions);
 
-        // if (!token) {
-        //     throw new Error('Unauthorized: No token available');
-        // }
+        if (!session?.user?.email) {
+            redirect('/auth/signin');
+        }
 
-        const url = new URL('/api/bookings', APP_URL);
+        // Получаем пользователя по email
+        const user = await prismadb.user.findUnique({
+            where: {
+                email: session.user.email
+            }
+        });
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // 'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Проверяем, не забронирован ли номер на эти даты
+        const existingBooking = await prismadb.booking.findFirst({
+            where: {
+                roomId,
+                AND: [
+                    {
+                        OR: [
+                            {
+                                AND: [
+                                    { startDate: { lte: startDate } },
+                                    { endDate: { gte: startDate } }
+                                ]
+                            },
+                            {
+                                AND: [
+                                    { startDate: { lte: endDate } },
+                                    { endDate: { gte: endDate } }
+                                ]
+                            },
+                            {
+                                AND: [
+                                    { startDate: { gte: startDate } },
+                                    { endDate: { lte: endDate } }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        if (existingBooking) {
+            throw new Error("Room is already booked for these dates");
+        }
+
+        // Создаем бронирование
+        const booking = await prismadb.booking.create({
+            data: {
+                userId: user.id,
                 roomId,
                 hotelId,
                 startDate,
                 endDate,
-                totalPrice,
-            }),
+                totalPrice
+            }
         });
 
-        if (!response.ok) {
-            const errorData = await response.text();
-            console.error('Booking error response:', errorData);
-            throw new Error(`Failed to book room: ${errorData}`);
-        }
-
-        const data = await response.json();
-        console.log('Booking success:', data);
+        revalidatePath('/my-bookings');
+        revalidatePath(`/hotel/${hotelId}`);
 
         redirect('/my-bookings');
     } catch (error) {

@@ -1,57 +1,138 @@
-'use client';
-
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Room } from "@prisma/client";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarIcon, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, isAfter, isBefore, isWithinInterval } from "date-fns";
 import { ru } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/actions/createBooking";
+import { useSession } from "next-auth/react";
 
 interface BookingFormProps {
     room: Room;
     hotelId: string;
-    existingBookings: Array<{ startDate: Date; endDate: Date; }>;
+    existingBookings: Array<{ startDate: string; endDate: string; }>;
 }
 
 export function BookingForm({ room, hotelId, existingBookings }: BookingFormProps) {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isLoading, setIsLoading] = useState(false);
-    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const { data: session } = useSession();
 
     const totalNights = dateRange?.from && dateRange?.to
         ? Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
         : 0;
     const totalPrice = room.roomPrice * totalNights;
 
+    // Преобразуем даты бронирований из строк в объекты Date
+    const bookings = useMemo(() => {
+        return existingBookings.map(booking => ({
+            startDate: new Date(booking.startDate),
+            endDate: new Date(booking.endDate)
+        }));
+    }, [existingBookings]);
+
+    // Функция для проверки, доступна ли дата для бронирования
+    const isDateDisabled = (date: Date) => {
+        // Проверяем прошедшие даты
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (isBefore(date, today)) {
+            return true;
+        }
+
+        // Проверяем пересечения с существующими бронированиями
+        return bookings.some(booking =>
+            isWithinInterval(date, {
+                start: booking.startDate,
+                end: booking.endDate
+            })
+        );
+    };
+
+    // Проверяем выбранный диапазон на пересечения с существующими бронированиями
+    const isRangeValid = (start: Date, end: Date) => {
+        if (!start || !end) return false;
+
+        // Проверяем каждый день в диапазоне
+        const current = new Date(start);
+        while (current <= end) {
+            if (isDateDisabled(current)) {
+                return false;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        return true;
+    };
+
     const handleBooking = async () => {
+        if (!session) {
+            toast({
+                title: "Требуется авторизация",
+                description: "Войдите в систему для бронирования",
+                variant: "destructive"
+            });
+            router.push('/auth/signin');
+            return;
+        }
+
         if (!dateRange?.from || !dateRange?.to) {
             toast({
                 variant: "destructive",
-                title: "Ошибка",
-                description: "Выберите даты бронирования",
+                title: "Выберите даты",
+                description: "Необходимо выбрать даты бронирования",
+            });
+            return;
+        }
+
+        if (!isRangeValid(dateRange.from, dateRange.to)) {
+            toast({
+                variant: "destructive",
+                title: "Недоступные даты",
+                description: "Выбранные даты недоступны для бронирования",
             });
             return;
         }
 
         try {
             setIsLoading(true);
-            await createBooking(
-                room.id,
-                hotelId,
-                dateRange.from,
-                dateRange.to,
-                totalPrice
-            );
+            try {
+                await createBooking(
+                    room.id,
+                    hotelId,
+                    dateRange.from,
+                    dateRange.to,
+                    totalPrice
+                );
+
+                toast({
+                    title: "Успешно!",
+                    description: "Бронирование создано",
+                });
+
+                router.push('/my-bookings');
+            } catch (error) {
+                console.error('Booking error:', error);
+                let errorMessage = "Не удалось создать бронирование";
+
+                if (error instanceof Error) {
+                    if (error.message === "Room is already booked for these dates") {
+                        errorMessage = "Номер уже забронирован на выбранные даты";
+                    }
+                }
+
+                toast({
+                    variant: "destructive",
+                    title: "Ошибка",
+                    description: errorMessage,
+                });
+            }
 
             toast({
                 title: "Успешно!",
@@ -60,6 +141,7 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
 
             router.push('/my-bookings');
         } catch (error) {
+            console.error('Booking error:', error);
             toast({
                 variant: "destructive",
                 title: "Ошибка",
@@ -70,85 +152,87 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
         }
     };
 
-    // Similar date handling logic as before...
-
     return (
-        <Card>
+        <Card className="w-full max-w-3xl mx-auto">
             <CardHeader>
-                <CardTitle>Детали бронирования</CardTitle>
+                <CardTitle>Бронирование номера</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="text-muted-foreground">Номер:</div>
-                    <div className="font-medium">{room.title}</div>
-
-                    <div className="text-muted-foreground">Даты:</div>
-                    <div className="flex gap-2">
-                        <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                            <DialogTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !dateRange && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, 'dd.MM.yy')} -{' '}
-                                                {format(dateRange.to, 'dd.MM.yy')}
-                                            </>
-                                        ) : (
-                                            format(dateRange.from, 'dd.MM.yy')
-                                        )
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                                {dateRange?.from ? (
+                                    dateRange.to ? (
+                                        <>
+                                            {format(dateRange.from, 'dd MMM yyyy', { locale: ru })} -{' '}
+                                            {format(dateRange.to, 'dd MMM yyyy', { locale: ru })}
+                                        </>
                                     ) : (
-                                        <span>Выберите даты бронирования</span>
-                                    )}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="p-0">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    locale={ru}
-                                    numberOfMonths={2}
-                                />
-                            </DialogContent>
-                        </Dialog>
-                        {dateRange && (
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => setDateRange(undefined)}
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
-                        )}
+                                        format(dateRange.from, 'dd MMM yyyy', { locale: ru })
+                                    )
+                                ) : (
+                                    'Выберите даты проживания'
+                                )}
+                            </span>
+                        </div>
+
+                        <div className="overflow-auto p-4 rounded-md border max-h-[500px]">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
+                                onSelect={setDateRange}
+                                numberOfMonths={2}
+                                disabled={isDateDisabled}
+                                locale={ru}
+                                className="mx-auto"
+                            />
+                        </div>
                     </div>
 
-                    <div className="text-muted-foreground">Количество ночей:</div>
-                    <div className="font-medium">{totalNights}</div>
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Стоимость за ночь</span>
+                                <span className="font-medium">{room.roomPrice}₽</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Количество ночей</span>
+                                <span className="font-medium">{totalNights}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-lg font-semibold pt-2 border-t">
+                                <span>Итого</span>
+                                <span>{totalPrice}₽</span>
+                            </div>
+                        </div>
 
-                    <div className="text-muted-foreground">Стоимость за ночь:</div>
-                    <div className="font-medium">{room.roomPrice}₽</div>
+                        <Button
+                            className="w-full"
+                            size="lg"
+                            onClick={handleBooking}
+                            disabled={!dateRange?.from || !dateRange?.to || isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Оформление...
+                                </>
+                            ) : (
+                                'Забронировать'
+                            )}
+                        </Button>
 
-                    <div className="text-muted-foreground">Итого:</div>
-                    <div className="font-medium text-lg">{totalPrice}₽</div>
+                        {!session && (
+                            <p className="text-sm text-muted-foreground text-center">
+                                Необходимо войти в систему для бронирования
+                            </p>
+                        )}
+                    </div>
                 </div>
             </CardContent>
-            <CardFooter>
-                <Button
-                    className="w-full"
-                    onClick={handleBooking}
-                    disabled={!dateRange?.from || !dateRange?.to || isLoading}
-                >
-                    {isLoading ? 'Оформление...' : 'Оформить бронирование'}
-                </Button>
-            </CardFooter>
         </Card>
     );
 }

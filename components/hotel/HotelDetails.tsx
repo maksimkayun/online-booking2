@@ -1,10 +1,13 @@
-'use client';
+"use client";
+
 import { Hotel, Room } from "@prisma/client";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { HotelInfo } from "./details/HotelInfo";
 import { RoomsList } from "./rooms/RoomsList";
 import { BookingForm } from "./booking/BookingForm";
+import { useRoomBookings } from "@/hooks/use-room-bookings";
+import { Loader2 } from "lucide-react";
 
 interface HotelDetailsProps {
     hotel: Hotel & { rooms: Room[] };
@@ -13,7 +16,10 @@ interface HotelDetailsProps {
 }
 
 export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: HotelDetailsProps) {
-    const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+    const [selectedRoom, setSelectedRoom] = useState<string | undefined>(undefined);
+
+    // Получаем существующие бронирования для выбранной комнаты
+    const { bookings, isLoading } = useRoomBookings(hotel.id, selectedRoom);
 
     if (isOwner) {
         return (
@@ -28,6 +34,9 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
         );
     }
 
+    // Находим выбранную комнату
+    const selectedRoomDetails = selectedRoom ? hotel.rooms.find(r => r.id === selectedRoom) : null;
+
     return (
         <div className="space-y-6">
             <HotelInfo hotel={hotel} isOwner={isOwner} />
@@ -38,19 +47,25 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
                 <h2 className="text-2xl font-bold mb-6">Доступные номера</h2>
                 <RoomsList
                     rooms={hotel.rooms}
-                    selectedRoom={selectedRoom || undefined}
-                    onRoomSelect={(roomId) => setSelectedRoom(roomId)}
+                    selectedRoom={selectedRoom}
+                    onRoomSelect={setSelectedRoom}
                 />
 
-                {isBookingPage && selectedRoom && (
+                {selectedRoom && selectedRoomDetails && (
                     <>
                         <Separator className="my-8" />
-                        <div className="max-w-md mx-auto">
-                            <BookingForm
-                                room={hotel.rooms.find(r => r.id === selectedRoom)!}
-                                hotelId={hotel.id}
-                                existingBookings={[]} // Pass actual bookings data
-                            />
+                        <div className="max-w-3xl mx-auto">
+                            {isLoading ? (
+                                <div className="flex items-center justify-center p-8">
+                                    <Loader2 className="h-8 w-8 animate-spin" />
+                                </div>
+                            ) : (
+                                <BookingForm
+                                    room={selectedRoomDetails}
+                                    hotelId={hotel.id}
+                                    existingBookings={bookings}
+                                />
+                            )}
                         </div>
                     </>
                 )}

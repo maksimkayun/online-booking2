@@ -1,15 +1,28 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
     try {
-        const { userId } = await auth();
-        const body = await req.json();
+        const session = await getServerSession(authOptions);
 
+        if (!session?.user?.email) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
+        const body = await req.json();
         const { roomId, hotelId, startDate, endDate, totalPrice } = body;
 
-        if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
+        // Получаем пользователя по email
+        const user = await prismadb.user.findUnique({
+            where: {
+                email: session.user.email
+            }
+        });
+
+        if (!user) {
+            return new NextResponse("User not found", { status: 404 });
         }
 
         if (!roomId || !hotelId || !startDate || !endDate || !totalPrice) {
@@ -29,7 +42,6 @@ export async function POST(req: Request) {
         }
 
         // Проверяем, не забронирован ли номер на эти даты
-        // Используем более точную проверку пересечений
         const existingBooking = await prismadb.booking.findFirst({
             where: {
                 roomId,
@@ -72,7 +84,7 @@ export async function POST(req: Request) {
 
         const booking = await prismadb.booking.create({
             data: {
-                userId,
+                userId: user.id,
                 roomId,
                 hotelId,
                 startDate: newStartDate,
