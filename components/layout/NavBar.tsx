@@ -1,3 +1,4 @@
+// components/layout/NavBar.tsx
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
@@ -14,13 +15,37 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { useState } from "react";
+import { Hotel } from "lucide-react"; // Добавляем иконку как запасной вариант
 
 const NavBar = () => {
     const router = useRouter();
     const { data: session, status } = useSession();
+    const [logoError, setLogoError] = useState(false);
 
     const handleSignOut = () => {
         signOut({ callbackUrl: '/' });
+    };
+
+    const handleLogoError = () => {
+        setLogoError(true);
+    };
+
+    const Logo = () => {
+        if (logoError) {
+            return <Hotel className="w-[30px] h-[30px]" />;
+        }
+
+        return (
+            <Image
+                src="/logo.svg"
+                alt="logo"
+                width={30}
+                height={30}
+                onError={handleLogoError}
+                priority
+            />
+        );
     };
 
     return (
@@ -32,13 +57,7 @@ const NavBar = () => {
                         onClick={() => router.push('/')}
                     >
                         <div className="relative w-[30px] h-[30px]">
-                            <Image
-                                src="/logo.svg"
-                                alt="logo"
-                                fill
-                                priority
-                                sizes="30px"
-                            />
+                            <Logo />
                         </div>
                         <div className="font-bold text-xl">Online booking</div>
                     </div>

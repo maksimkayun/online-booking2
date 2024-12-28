@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
         const body = await req.json();
-        const { targetUserId, role, userName } = body;
+        const { targetUserId, role } = body;
 
         if (!session?.user) {
             return new NextResponse("Unauthorized", { status: 401 });
@@ -37,16 +37,12 @@ export async function POST(req: Request) {
             return new NextResponse("Forbidden", { status: 403 });
         }
 
-        const updatedPermission = await prismadb.user.upsert({
-            where: { email: targetUserId },
-            update: {
-                role,
-                userName: userName || null
+        const updatedPermission = await prismadb.user.update({ // Меняем upsert на update
+            where: {
+                email: targetUserId
             },
-            create: {
-                email: targetUserId,
+            data: {
                 role,
-                userName: userName || null
             }
         });
 

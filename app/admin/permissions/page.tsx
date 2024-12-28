@@ -9,10 +9,19 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { UserRole } from "@prisma/client";
 import { Loader2 } from "lucide-react";
-import {withClientAuthHOC} from "@/middleware";
+import { withClientAuthHOC } from "@/lib/withClientAuth";
+
+// Добавляем интерфейс для данных о разрешениях
+interface Permission {
+    id: string;
+    email: string;
+    role: UserRole;
+    name: string | null;
+    updatedAt: string;
+}
 
 function AdminPermissionsPage() {
-    const { permissions, isLoading, mutate, userName } = usePermissions();
+    const { permissions, isLoading, mutate } = usePermissions();
     const [newUserId, setNewUserId] = useState('');
     const [newRole, setNewRole] = useState<UserRole>('USER');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,7 +40,6 @@ function AdminPermissionsPage() {
                 body: JSON.stringify({
                     targetUserId: newUserId,
                     role: newRole,
-                    userName: userName
                 }),
             });
 
@@ -46,6 +54,7 @@ function AdminPermissionsPage() {
 
             setNewUserId('');
             mutate();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -109,23 +118,23 @@ function AdminPermissionsPage() {
                     <div className="mt-8">
                         <h3 className="text-lg font-semibold mb-4">Текущие права</h3>
                         <div className="grid gap-4">
-                            {permissions?.map((permission) => (
-                                <Card key={permission.userId}>
+                            {permissions?.map((permission: Permission) => (
+                                <Card key={permission.id}>
                                     <CardContent className="flex items-center justify-between p-4">
                                         <div>
-                                            <p className="font-medium">{permission.userId}</p>
-                                            {permission.userName && (
+                                            <p className="font-medium">{permission.email}</p>
+                                            {permission.name && (
                                                 <p className="text-sm text-muted-foreground">
-                                                    Имя: {permission.userName}
+                                                    Имя: {permission.name}
                                                 </p>
                                             )}
                                             <p className="text-sm text-muted-foreground">
                                                 Роль: {permission.role}
                                             </p>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {new Date(permission.updatedAt).toLocaleDateString()}
-                                        </div>
+                                        {/*<div className="text-sm text-muted-foreground">*/}
+                                        {/*    {new Date(permission.updatedAt).toLocaleDateString()}*/}
+                                        {/*</div>*/}
                                     </CardContent>
                                 </Card>
                             ))}
