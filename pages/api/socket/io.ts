@@ -30,6 +30,16 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
                 socket.leave(`hotel:${hotelId}`);
             });
 
+            // Подписка на обновления бронирований конкретного пользователя
+            socket.on('join-user-bookings', (userId: string) => {
+                socket.join(`user:${userId}:bookings`);
+            });
+
+            // Отписка от обновлений бронирований
+            socket.on('leave-user-bookings', (userId: string) => {
+                socket.leave(`user:${userId}:bookings`);
+            });
+
             socket.on('disconnect', () => {
                 console.log('Client disconnected');
             });

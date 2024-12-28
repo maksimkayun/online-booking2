@@ -1,14 +1,64 @@
 'use client';
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useBookings } from "@/hooks/use-bookings";
+import { useSocket } from "@/lib/socket";
 import BookingsList from "@/components/bookings/BookingsList";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 export default function MyBookingsPage() {
-    const { bookings, isLoading } = useBookings();
+    const { bookings, isLoading, mutate } = useBookings();
     const router = useRouter();
+    const { socket } = useSocket();
+    const [userId, setUserId] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Получаем ID пользователя при первой загрузке
+        const fetchUserId = async () => {
+            try {
+                const response = await fetch('/api/user/profile');
+                if (!response.ok) throw new Error('Failed to fetch user profile');
+                const data = await response.json();
+                setUserId(data.id);
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+            }
+        };
+
+        fetchUserId();
+    }, []);
+
+    useEffect(() => {
+        if (!socket || !userId) return;
+
+        // Подписываемся на обновления бронирований
+        socket.emit('join-user-bookings', userId);
+
+        // Обработка события отмены бронирования
+        const handleBookingCancelled = (data: { bookingId: string; userId: string }) => {
+            if (data.userId === userId) {
+                mutate(); // Обновляем список бронирований
+            }
+        };
+
+        // Обработка события создания бронирования
+        const handleBookingCreated = (data: { userId: string }) => {
+            if (data.userId === userId) {
+                mutate();
+            }
+        };
+
+        socket.on('booking:cancelled', handleBookingCancelled);
+        socket.on('booking:created', handleBookingCreated);
+
+        return () => {
+            socket.off('booking:cancelled', handleBookingCancelled);
+            socket.off('booking:created', handleBookingCreated);
+            socket.emit('leave-user-bookings', userId);
+        };
+    }, [socket, userId, mutate]);
 
     if (isLoading) {
         return (
@@ -32,7 +82,7 @@ export default function MyBookingsPage() {
                 </Button>
             </div>
 
-            <BookingsList bookings={bookings} />
+            <BookingsList bookings={bookings} onCancelSuccess={() => mutate()} />
         </div>
     );
 }

@@ -20,9 +20,10 @@ interface BookingWithDetails extends Booking {
 
 interface BookingsListProps {
     bookings: BookingWithDetails[];
+    onCancelSuccess?: () => void;
 }
 
-export default function BookingsList({ bookings }: BookingsListProps) {
+export default function BookingsList({ bookings, onCancelSuccess }: BookingsListProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState<string | null>(null);
     const { toast } = useToast();
@@ -55,7 +56,8 @@ export default function BookingsList({ bookings }: BookingsListProps) {
                 description: "Бронирование отменено",
             });
 
-            router.refresh();
+            // Вызываем колбэк успешной отмены
+            onCancelSuccess?.();
         } catch (error) {
             console.error('Error canceling booking:', error);
             toast({

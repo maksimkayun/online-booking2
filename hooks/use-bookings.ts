@@ -17,9 +17,9 @@ export function useBookings() {
         '/api/mybookings',
         fetcher,
         {
-            refreshInterval: 0, // Убираем автообновление
-            revalidateOnFocus: false, // Отключаем ревалидацию при фокусе
-            revalidateIfStale: false
+            refreshInterval: 5000, // Обновляем каждые 5 секунд
+            revalidateOnFocus: true,
+            revalidateIfStale: true
         }
     );
 

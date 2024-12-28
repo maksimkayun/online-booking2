@@ -16,9 +16,9 @@ export function useHotel(hotelId?: string) {
         hotelId ? `/api/hotels/${hotelId}` : null,
         fetcher,
         {
-            refreshInterval: 0, // Убираем автообновление
-            revalidateOnFocus: false, // Отключаем ревалидацию при фокусе
-            revalidateIfStale: false
+            refreshInterval: 5000,
+            revalidateOnFocus: true,
+            revalidateIfStale: true
         }
     );
 

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/actions/createBooking";
 import { useSession } from "next-auth/react";
+import {mutate} from "swr";
 
 interface BookingFormProps {
     room: Room;
@@ -91,48 +92,20 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
             return;
         }
 
-        if (!isRangeValid(dateRange.from, dateRange.to)) {
-            toast({
-                variant: "destructive",
-                title: "Недоступные даты",
-                description: "Выбранные даты недоступны для бронирования",
-            });
-            return;
-        }
-
         try {
             setIsLoading(true);
-            try {
-                await createBooking(
-                    room.id,
-                    hotelId,
-                    dateRange.from,
-                    dateRange.to,
-                    totalPrice
-                );
 
-                toast({
-                    title: "Успешно!",
-                    description: "Бронирование создано",
-                });
+            // Создаем бронирование
+            await createBooking(
+                room.id,
+                hotelId,
+                dateRange.from,
+                dateRange.to,
+                totalPrice
+            );
 
-                router.push('/my-bookings');
-            } catch (error) {
-                console.error('Booking error:', error);
-                let errorMessage = "Не удалось создать бронирование";
-
-                if (error instanceof Error) {
-                    if (error.message === "Room is already booked for these dates") {
-                        errorMessage = "Номер уже забронирован на выбранные даты";
-                    }
-                }
-
-                toast({
-                    variant: "destructive",
-                    title: "Ошибка",
-                    description: errorMessage,
-                });
-            }
+            // Принудительно обновляем данные
+            await mutate('/api/mybookings');
 
             toast({
                 title: "Успешно!",
@@ -142,10 +115,18 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
             router.push('/my-bookings');
         } catch (error) {
             console.error('Booking error:', error);
+            let errorMessage = "Не удалось создать бронирование";
+
+            if (error instanceof Error) {
+                if (error.message === "Room is already booked for these dates") {
+                    errorMessage = "Номер уже забронирован на выбранные даты";
+                }
+            }
+
             toast({
                 variant: "destructive",
                 title: "Ошибка",
-                description: "Не удалось создать бронирование",
+                description: errorMessage,
             });
         } finally {
             setIsLoading(false);

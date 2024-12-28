@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
+import {getServerSession} from "next-auth/next";
+import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET() {
     try {
-        const { userId } = await auth();
+        const session = await getServerSession(authOptions);
 
-        if (!userId) {
+        if (!session?.user?.email) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
+        const user = await prismadb.user.findUnique({
+            where: {
+                email: session.user.email
+            }
+        });
+
         const bookings = await prismadb.booking.findMany({
             where: {
-                userId: userId,
+                userId: user?.id
             },
             include: {
                 Hotel: true,
