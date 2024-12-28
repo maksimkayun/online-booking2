@@ -66,7 +66,12 @@ export async function PATCH(req: Request) {
             }
         });
 
-        return NextResponse.json(updatedUser);
+        // Инвалидируем текущую сессию, чтобы заставить Next.js получить новые данные
+        const response = new NextResponse(JSON.stringify(updatedUser));
+        response.headers.set('Clear-Site-Data', '"storage"');
+
+        return response;
+
     } catch (error) {
         console.error('[PROFILE_PATCH]', error);
         return new NextResponse("Internal error", { status: 500 });

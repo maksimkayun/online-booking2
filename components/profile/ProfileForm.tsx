@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { mutate } from "swr";
 
 const profileSchema = z.object({
     name: z.string().min(2, "Минимум 2 символа"),
@@ -52,19 +53,6 @@ export default function ProfileForm() {
         },
     });
 
-    // Используем useEffect только для начальной инициализации значений формы
-    useEffect(() => {
-        if (session?.user) {
-            form.reset({
-                name: session.user.name || "",
-                newEmail: session.user.email || "",
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-        }
-    }, [session?.user?.email]); // Зависимость только от email пользователя
-
     async function onSubmit(values: z.infer<typeof profileSchema>) {
         try {
             setIsLoading(true);
@@ -84,17 +72,7 @@ export default function ProfileForm() {
 
             const updatedUser = await response.json();
 
-            // Обновляем форму новыми значениями сразу после успешного ответа
-            form.reset({
-                ...form.getValues(),
-                name: updatedUser.name,
-                newEmail: updatedUser.email,
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-
-            // Обновляем сессию
+            // Обновляем сессию и дожидаемся обновления
             await update({
                 ...session,
                 user: {
@@ -102,6 +80,24 @@ export default function ProfileForm() {
                     name: updatedUser.name,
                     email: updatedUser.email,
                 }
+            });
+
+            // Принудительно инвалидируем все связанные кеши
+            await Promise.all([
+                mutate('/api/user/profile'),
+                mutate('/api/mybookings'),
+                mutate('/api/hotels'),
+                // Инвалидируем все кеши начинающиеся с /api/
+                mutate((key) => typeof key === 'string' && key.startsWith('/api/'), undefined, { revalidate: true })
+            ]);
+
+            // Сразу обновляем форму с новыми данными
+            form.reset({
+                name: updatedUser.name,
+                newEmail: updatedUser.email,
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
             });
 
             toast({
@@ -120,9 +116,22 @@ export default function ProfileForm() {
         }
     }
 
+    useEffect(() => {
+        if (session?.user) {
+            form.reset({
+                name: session.user.name || "",
+                newEmail: session.user.email || "",
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            });
+        }
+    }, [form]);
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Form fields remain the same */}
                 <div className="space-y-4">
                     <FormField
                         control={form.control}

@@ -14,7 +14,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import {Hotel, User} from "lucide-react";
 import {ExitIcon} from "@radix-ui/react-icons"; // Добавляем иконку как запасной вариант
 
@@ -22,6 +22,13 @@ const NavBar = () => {
     const router = useRouter();
     const { data: session, status } = useSession();
     const [logoError, setLogoError] = useState(false);
+
+    useEffect(() => {
+        if (status === 'authenticated') {
+            // Можно добавить дополнительную логику при необходимости
+            router.refresh();
+        }
+    }, [session, status, router]);
 
     const handleSignOut = () => {
         signOut({ callbackUrl: '/' });
