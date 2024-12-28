@@ -1,6 +1,6 @@
 import { Server as NetServer } from 'http';
-import { NextApiRequest } from 'next';
 import { Server as ServerIO } from 'socket.io';
+import { NextApiRequest } from 'next';
 import { NextApiResponseServerIO } from '@/types/socket';
 
 export const config = {
@@ -9,16 +9,23 @@ export const config = {
     },
 };
 
-const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
+const ioHandler = async (req: NextApiRequest, res: NextApiResponseServerIO) => {
     if (!res.socket.server.io) {
         const path = '/api/socket/io';
         const httpServer: NetServer = res.socket.server as any;
         const io = new ServerIO(httpServer, {
-            path: path,
+            path,
             addTrailingSlash: false,
+            cors: {
+                origin: process.env.NEXT_PUBLIC_APP_URL,
+                methods: ['GET', 'POST'],
+                credentials: true,
+            },
+            transports: ['polling', 'websocket'],
+            allowEIO3: true,
+            perMessageDeflate: false,
         });
 
-        // Socket.IO event handlers
         io.on('connection', (socket) => {
             console.log('Client connected');
 
@@ -30,12 +37,10 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
                 socket.leave(`hotel:${hotelId}`);
             });
 
-            // Подписка на обновления бронирований конкретного пользователя
             socket.on('join-user-bookings', (userId: string) => {
                 socket.join(`user:${userId}:bookings`);
             });
 
-            // Отписка от обновлений бронирований
             socket.on('leave-user-bookings', (userId: string) => {
                 socket.leave(`user:${userId}:bookings`);
             });
@@ -45,8 +50,14 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
             });
         });
 
-        res.socket.server.io = io;
+        // Устанавливаем IO на res.socket.server
+        Object.defineProperty(res.socket.server, 'io', {
+            configurable: true,
+            writable: true,
+            value: io
+        });
     }
+
     res.end();
 };
 

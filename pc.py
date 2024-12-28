@@ -18,7 +18,7 @@ def collect_project_structure(project_path):
     ]
 
     # Список исключаемых директорий
-    excluded_dirs = {'node_modules', '.next'}
+    excluded_dirs = {'node_modules', '.next', 'infra'}
 
     # Собираем конфигурационные файлы
     for config_file in config_files:

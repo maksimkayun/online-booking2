@@ -3,15 +3,17 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prismadb } from "@/lib/prismadb";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function createBooking(
-    roomId: string,
-    hotelId: string,
-    startDate: Date,
-    endDate: Date,
-    totalPrice: number
+    formData: {
+        roomId: string;
+        hotelId: string;
+        startDate: Date;
+        endDate: Date;
+        totalPrice: number;
+    }
 ) {
     try {
         const session = await getServerSession(authOptions);
@@ -19,6 +21,8 @@ export async function createBooking(
         if (!session?.user?.email) {
             redirect('/auth/signin');
         }
+
+        const { roomId, hotelId, startDate, endDate, totalPrice } = formData;
 
         // Получаем пользователя по email
         const user = await prismadb.user.findUnique({
@@ -81,9 +85,9 @@ export async function createBooking(
         revalidatePath('/my-bookings');
         revalidatePath(`/hotel/${hotelId}`);
 
-        redirect('/my-bookings');
+        return { success: true, booking };
     } catch (error) {
         console.error('Booking error:', error);
-        throw error;
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to create booking' };
     }
 }

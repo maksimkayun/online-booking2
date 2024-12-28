@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+'use client';
+
+import { useMemo, useState } from "react";
 import { Room } from "@prisma/client";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format, isAfter, isBefore, isWithinInterval } from "date-fns";
+import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/actions/createBooking";
 import { useSession } from "next-auth/react";
-import {mutate} from "swr";
 
 interface BookingFormProps {
     room: Room;
@@ -22,9 +23,9 @@ interface BookingFormProps {
 export function BookingForm({ room, hotelId, existingBookings }: BookingFormProps) {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isLoading, setIsLoading] = useState(false);
-    const { toast } = useToast();
+    const {toast} = useToast();
     const router = useRouter();
-    const { data: session } = useSession();
+    const {data: session} = useSession();
 
     const totalNights = dateRange?.from && dateRange?.to
         ? Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
@@ -38,39 +39,6 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
             endDate: new Date(booking.endDate)
         }));
     }, [existingBookings]);
-
-    // Функция для проверки, доступна ли дата для бронирования
-    const isDateDisabled = (date: Date) => {
-        // Проверяем прошедшие даты
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (isBefore(date, today)) {
-            return true;
-        }
-
-        // Проверяем пересечения с существующими бронированиями
-        return bookings.some(booking =>
-            isWithinInterval(date, {
-                start: booking.startDate,
-                end: booking.endDate
-            })
-        );
-    };
-
-    // Проверяем выбранный диапазон на пересечения с существующими бронированиями
-    const isRangeValid = (start: Date, end: Date) => {
-        if (!start || !end) return false;
-
-        // Проверяем каждый день в диапазоне
-        const current = new Date(start);
-        while (current <= end) {
-            if (isDateDisabled(current)) {
-                return false;
-            }
-            current.setDate(current.getDate() + 1);
-        }
-        return true;
-    };
 
     const handleBooking = async () => {
         if (!session) {
@@ -95,17 +63,17 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
         try {
             setIsLoading(true);
 
-            // Создаем бронирование
-            await createBooking(
-                room.id,
+            const result = await createBooking({
+                roomId: room.id,
                 hotelId,
-                dateRange.from,
-                dateRange.to,
+                startDate: dateRange.from,
+                endDate: dateRange.to,
                 totalPrice
-            );
+            });
 
-            // Принудительно обновляем данные
-            await mutate('/api/mybookings');
+            if (!result.success) {
+                throw new Error(result.error);
+            }
 
             toast({
                 title: "Успешно!",
@@ -133,6 +101,21 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
         }
     };
 
+    const isDateDisabled = (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Проверяем прошедшие даты
+        if (date < today) {
+            return true;
+        }
+
+        // Проверяем пересечения с существующими бронированиями
+        return bookings.some(booking =>
+            date >= booking.startDate && date <= booking.endDate
+        );
+    };
+
     return (
         <Card className="w-full max-w-3xl mx-auto">
             <CardHeader>
@@ -142,16 +125,16 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
                 <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+                            <CalendarIcon className="h-5 w-5 text-muted-foreground"/>
                             <span className="text-sm text-muted-foreground">
                                 {dateRange?.from ? (
                                     dateRange.to ? (
                                         <>
-                                            {format(dateRange.from, 'dd MMM yyyy', { locale: ru })} -{' '}
-                                            {format(dateRange.to, 'dd MMM yyyy', { locale: ru })}
+                                            {format(dateRange.from, 'dd MMM yyyy', {locale: ru})} -{' '}
+                                            {format(dateRange.to, 'dd MMM yyyy', {locale: ru})}
                                         </>
                                     ) : (
-                                        format(dateRange.from, 'dd MMM yyyy', { locale: ru })
+                                        format(dateRange.from, 'dd MMM yyyy', {locale: ru})
                                     )
                                 ) : (
                                     'Выберите даты проживания'
@@ -198,7 +181,7 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
                         >
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
                                     Оформление...
                                 </>
                             ) : (
