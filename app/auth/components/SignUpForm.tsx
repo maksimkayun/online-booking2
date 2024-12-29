@@ -13,7 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import {signIn} from "next-auth/react";
 
 const formSchema = z.object({
-    name: z.string().min(2, "Минимум 2 символа"),
+    firstName: z.string().min(2, "Минимум 2 символа"),
+    lastName: z.string().min(2, "Минимум 2 символа"),
+    middleName: z.string().optional(),
     email: z.string().email("Некорректный email"),
     password: z.string().min(6, "Минимум 6 символов"),
 });
@@ -26,7 +28,9 @@ export function SignUpForm() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            name: "",
+            firstName: "",
+            lastName: "",
+            middleName: "",
             email: "",
             password: "",
         },
@@ -36,19 +40,27 @@ export function SignUpForm() {
         try {
             setIsLoading(true);
 
+            // Собираем полное имя
+            const fullName = [values.lastName, values.firstName, values.middleName]
+                .filter(Boolean)
+                .join(" ");
+
             const res = await fetch("/api/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(values),
+                body: JSON.stringify({
+                    name: fullName,
+                    email: values.email,
+                    password: values.password,
+                }),
             });
 
             if (!res.ok) {
                 throw new Error("Registration failed");
             }
 
-            // После успешной регистрации выполняем вход
             const signInResult = await signIn("credentials", {
                 email: values.email,
                 password: values.password,
@@ -91,7 +103,21 @@ export function SignUpForm() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                         control={form.control}
-                        name="name"
+                        name="lastName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Фамилия</FormLabel>
+                                <FormControl>
+                                    <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="firstName"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Имя</FormLabel>
@@ -102,6 +128,21 @@ export function SignUpForm() {
                             </FormItem>
                         )}
                     />
+
+                    <FormField
+                        control={form.control}
+                        name="middleName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Отчество</FormLabel>
+                                <FormControl>
+                                    <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
                     <FormField
                         control={form.control}
                         name="email"
@@ -115,6 +156,7 @@ export function SignUpForm() {
                             </FormItem>
                         )}
                     />
+
                     <FormField
                         control={form.control}
                         name="password"
@@ -128,6 +170,7 @@ export function SignUpForm() {
                             </FormItem>
                         )}
                     />
+
                     <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? "Загрузка..." : "Зарегистрироваться"}
                     </Button>

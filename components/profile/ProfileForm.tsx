@@ -14,7 +14,9 @@ import { Separator } from "@/components/ui/separator";
 import { mutate } from "swr";
 
 const profileSchema = z.object({
-    name: z.string().min(2, "Минимум 2 символа"),
+    firstName: z.string().min(2, "Минимум 2 символа"),
+    lastName: z.string().min(2, "Минимум 2 символа"),
+    middleName: z.string().optional(),
     newEmail: z.string().email("Некорректный email"),
     currentPassword: z.string().min(6).optional().or(z.literal("")),
     newPassword: z.string().min(6).optional().or(z.literal("")),
@@ -45,7 +47,9 @@ export default function ProfileForm() {
     const form = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: "",
+            firstName: "",
+            lastName: "",
+            middleName: "",
             newEmail: "",
             currentPassword: "",
             newPassword: "",
@@ -57,12 +61,20 @@ export default function ProfileForm() {
         try {
             setIsLoading(true);
 
+            // Собираем полное имя
+            const fullName = [values.lastName, values.firstName, values.middleName]
+                .filter(Boolean)
+                .join(" ");
+
             const response = await fetch('/api/user/profile', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(values),
+                body: JSON.stringify({
+                    ...values,
+                    name: fullName, // Отправляем полное имя одной строкой
+                }),
             });
 
             if (!response.ok) {
@@ -72,7 +84,6 @@ export default function ProfileForm() {
 
             const updatedUser = await response.json();
 
-            // Обновляем сессию и дожидаемся обновления
             await update({
                 ...session,
                 user: {
@@ -82,29 +93,19 @@ export default function ProfileForm() {
                 }
             });
 
-            // Принудительно инвалидируем все связанные кеши
             await Promise.all([
                 mutate('/api/user/profile'),
                 mutate('/api/mybookings'),
                 mutate('/api/hotels'),
-                // Инвалидируем все кеши начинающиеся с /api/
                 mutate((key) => typeof key === 'string' && key.startsWith('/api/'), undefined, { revalidate: true })
             ]);
-
-            // Сразу обновляем форму с новыми данными
-            form.reset({
-                name: updatedUser.name,
-                newEmail: updatedUser.email,
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
 
             toast({
                 title: "Успешно!",
                 description: "Профиль обновлен",
             });
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",
@@ -118,34 +119,70 @@ export default function ProfileForm() {
 
     useEffect(() => {
         if (session?.user) {
+            // Разбиваем полное имя на части
+            const nameParts = (session.user.name || "").split(" ");
+            const [lastName = "", firstName = "", ...middleNameParts] = nameParts;
+            const middleName = middleNameParts.join(" ");
+
             form.reset({
-                name: session.user.name || "",
+                firstName,
+                lastName,
+                middleName,
                 newEmail: session.user.email || "",
                 currentPassword: "",
                 newPassword: "",
                 confirmPassword: "",
             });
         }
-    }, [form]);
+    }, [form, session]);
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Form fields remain the same */}
                 <div className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Имя</FormLabel>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="lastName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Фамилия</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="firstName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Имя</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="middleName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Отчество</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
 
                     <FormField
                         control={form.control}
