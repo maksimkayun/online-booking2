@@ -88,7 +88,7 @@ const HotelList = ({ hotels }: HotelListProps) => {
                 const isOwner = hotel.userEmail === session?.user?.email;
 
                 return (
-                    <Card key={hotel.id} className="overflow-hidden">
+                    <Card key={hotel.id} className="flex flex-col h-full overflow-hidden">
                         <div className="relative w-full h-[200px]">
                             <Image
                                 src={hotel.image}
@@ -101,12 +101,12 @@ const HotelList = ({ hotels }: HotelListProps) => {
                             <CardTitle className="line-clamp-1">{hotel.title}</CardTitle>
                             <HotelRating rating={hotel.rating} className="mt-1" />
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-grow">
                             <p className="text-sm text-muted-foreground line-clamp-2">
                                 {hotel.description}
                             </p>
                         </CardContent>
-                        <CardFooter className="flex gap-2">
+                        <CardFooter className="mt-auto border-t flex gap-2 pt-4">
                             {(isOwner && isAdminOrManager) ? (
                                 <Button
                                     onClick={() => handleNavigate(`/hotel/${hotel.id}`)}
