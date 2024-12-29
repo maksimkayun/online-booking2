@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {useSession} from "next-auth/react";
+import HotelRating from "@/components/ui/HotelRating";
 
 interface HotelListProps {
     hotels: Hotel[];
@@ -98,6 +99,7 @@ const HotelList = ({ hotels }: HotelListProps) => {
                         </div>
                         <CardHeader>
                             <CardTitle className="line-clamp-1">{hotel.title}</CardTitle>
+                            <HotelRating rating={hotel.rating} className="mt-1" />
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground line-clamp-2">

@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
         const body = await req.json();
-        const { title, description, image } = body;
+        const { title, description, image, rating } = body;
 
         if (!session?.user?.email) {
             return new NextResponse("Unauthorized", { status: 401 });
@@ -18,6 +18,7 @@ export async function POST(req: Request) {
                 title,
                 description,
                 image,
+                rating: parseFloat(rating),
                 userEmail: session.user.email
             }
         });
@@ -39,11 +40,17 @@ export async function GET() {
     try {
         const hotels = await prismadb.hotel.findMany({
             orderBy: {
-                addedAt: 'desc'
+                rating: 'desc'
             },
         });
 
-        return NextResponse.json(hotels);
+        // Преобразуем Decimal в число перед отправкой клиенту
+        const safeHotels = hotels.map(hotel => ({
+            ...hotel,
+            rating: hotel.rating.toNumber()
+        }));
+
+        return NextResponse.json(safeHotels);
     } catch (error) {
         console.log('[HOTELS_GET]', error);
         return new NextResponse("Internal error", { status: 500 });

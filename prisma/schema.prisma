@@ -76,6 +76,7 @@ model Hotel {
   rooms       Room[]
   bookings    Booking[]
   user        User      @relation(fields: [userEmail], references: [email], onDelete: Cascade)
+  rating      Decimal   @db.Decimal(2, 1) @default(1.0)
 
   @@index([userEmail])
 }

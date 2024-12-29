@@ -14,7 +14,14 @@ export const getHotelById = async (hotelId: string) => {
             }
         });
 
-        return hotel;
+        if (!hotel) return null;
+
+        // Преобразуем Decimal в число
+        return {
+            ...hotel,
+            rating: hotel.rating.toNumber(),
+            rooms: hotel.rooms // rooms не содержат Decimal, поэтому их оставляем как есть
+        };
     } catch (error) {
         console.error('[GET_HOTEL]', error);
         throw new Error("Ошибка при получении отеля");

@@ -4,6 +4,7 @@ import { Hotel, Room } from "@prisma/client";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import HotelRating from "@/components/ui/HotelRating";
 
 interface HotelInfoProps {
     hotel: Hotel & { rooms: Room[] };
@@ -27,6 +28,7 @@ export function HotelInfo({ hotel, isOwner }: HotelInfoProps) {
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl font-bold">{hotel.title}</h1>
+                        <HotelRating rating={hotel.rating} className="mt-1" />
                         {!isOwner && (
                             <Button
                                 onClick={() => router.push(`/hotel/${hotel.id}/book`)}

@@ -10,7 +10,7 @@ export async function PATCH(
     try {
         const session = await getServerSession(authOptions);
         const body = await req.json();
-        const { title, description, image } = body;
+        const { title, description, image, rating } = body;
 
         if (!session?.user?.email) {
             return new NextResponse("Unauthorized", { status: 401 });
@@ -43,6 +43,7 @@ export async function PATCH(
                 title,
                 description,
                 image,
+                rating: parseFloat(rating),
             },
         });
 

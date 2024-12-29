@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useHotel } from "@/hooks/use-hotel";
 import { useHotels } from "@/hooks/use-hotels";
+import StarRating from "@/components/ui/StarRating";
 
 interface AddHotelFormProps {
     hotel?: Hotel | null;
@@ -29,6 +30,12 @@ const formSchema = z.object({
     }),
     image: z.string().min(1, {
         message: "Изображение обязательно",
+    }),
+    rating: z.string().refine((val) => {
+        const rating = parseFloat(val);
+        return rating >= 1 && rating <= 5 && (rating * 10) % 5 === 0;
+    }, {
+        message: "Рейтинг должен быть от 1 до 5 звезд с шагом 0.5",
     }),
 });
 
@@ -45,6 +52,7 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
             title: hotel?.title || "",
             description: hotel?.description || "",
             image: hotel?.image || "",
+            rating: hotel?.rating?.toString() || "1.0",
         },
     });
 
@@ -148,6 +156,23 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
                                             placeholder="Опишите ваш отель..."
                                             className="resize-none"
                                             {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="rating"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Рейтинг отеля</FormLabel>
+                                    <FormControl>
+                                        <StarRating
+                                            value={field.value}
+                                            onValueChange={field.onChange}
                                         />
                                     </FormControl>
                                     <FormMessage />
