@@ -4,14 +4,20 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { hash, compare } from "bcryptjs";
 
-export async function PATCH(req: Request) {
+interface UpdateData {
+    name?: string;
+    email?: string;
+    password?: string;
+}
+
+export async function PATCH(request: Request) {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user?.email) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        const body = await req.json();
+        const body = await request.json();
         const { name, newEmail, currentPassword, newPassword } = body;
 
         const user = await prismadb.user.findUnique({
@@ -22,7 +28,7 @@ export async function PATCH(req: Request) {
             return new NextResponse("User not found", { status: 404 });
         }
 
-        const updates: any = {};
+        const updates: UpdateData = {};
 
         if (name) {
             updates.name = name;
@@ -40,7 +46,6 @@ export async function PATCH(req: Request) {
             updates.email = newEmail;
         }
 
-        // Если пользователь хочет изменить пароль
         if (currentPassword && newPassword) {
             if (!user.password) {
                 return new NextResponse("Current password is required", { status: 400 });
@@ -54,7 +59,6 @@ export async function PATCH(req: Request) {
             updates.password = await hash(newPassword, 12);
         }
 
-        // Обновляем пользователя
         const updatedUser = await prismadb.user.update({
             where: { email: session.user.email },
             data: updates,
@@ -66,18 +70,27 @@ export async function PATCH(req: Request) {
             }
         });
 
-        // Инвалидируем текущую сессию, чтобы заставить Next.js получить новые данные
-        const response = new NextResponse(JSON.stringify(updatedUser));
-        response.headers.set('Clear-Site-Data', '"storage"');
+        // Создаем объект ответа с обновленными данными и метаданными
+        const responseData = {
+            user: updatedUser,
+            event: {
+                type: 'user:updated',
+                timestamp: new Date().toISOString()
+            }
+        };
 
-        return response;
+        return NextResponse.json(responseData);
 
     } catch (error) {
-        console.error('[PROFILE_PATCH]', error);
+        if (error instanceof Error) {
+            console.error('[PROFILE_PATCH]', error.message);
+            return new NextResponse(error.message, { status: 500 });
+        }
         return new NextResponse("Internal error", { status: 500 });
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions);

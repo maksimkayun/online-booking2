@@ -26,7 +26,7 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: NextAuthOptions = {
-    adapter: PrismaAdapter(prisma) as any,
+    adapter: PrismaAdapter(prisma),
     providers: [
         CredentialsProvider({
             name: "credentials",
@@ -75,20 +75,24 @@ export const authOptions: NextAuthOptions = {
     },
     callbacks: {
         async jwt({ token, user, trigger, session }) {
-            // Добавляем обработку обновления токена
-            if (trigger === "update" && session) {
-                // Обновляем данные в токене
-                return { ...token, ...session.user }
+            if (trigger === "update" && session?.user) {
+                // Merge the session update with the token
+                return { ...token, ...session.user };
             }
 
             if (user) {
                 token.role = user.role;
+                token.name = user.name;
+                token.email = user.email;
             }
+
             return token;
         },
         async session({ session, token }) {
             if (session?.user) {
                 session.user.role = token.role;
+                session.user.name = token.name;
+                session.user.email = token.email as string;
             }
             return session;
         }

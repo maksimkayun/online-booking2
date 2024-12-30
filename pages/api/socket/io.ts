@@ -1,6 +1,6 @@
-import { NextApiRequest } from 'next';
-import { NextApiResponseServerIO } from '@/types/socket';
+import {NextApiRequest} from 'next';
 import { initSocketServer } from '@/lib/socket-server';
+import {NextApiResponseSocket} from "@/types/socket";
 
 export const config = {
     api: {
@@ -8,7 +8,7 @@ export const config = {
     },
 };
 
-const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
+const ioHandler = (req: NextApiRequest, res: NextApiResponseSocket) => {
     try {
         initSocketServer(res);
         res.end();

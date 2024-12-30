@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { mutate } from "swr";
+import { useSocket } from "@/lib/socket";
+import {UserUpdateData} from "@/types/socket";
 
 const profileSchema = z.object({
     firstName: z.string().min(2, "Минимум 2 символа"),
@@ -43,6 +44,7 @@ export default function ProfileForm() {
     const { data: session, update } = useSession();
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+    const { socket } = useSocket();
 
     const form = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
@@ -57,11 +59,74 @@ export default function ProfileForm() {
         },
     });
 
+    // Обработчик обновления данных пользователя через сокет
+    useEffect(() => {
+        if (!socket || !session?.user?.email) return;
+
+        const handleUserUpdate = async (userData: UserUpdateData) => {
+            if (userData.email === session.user?.email) {
+                // Обновляем сессию с новыми данными
+                await update({
+                    ...session,
+                    user: {
+                        ...session.user,
+                        email: userData.email,
+                        name: userData.name
+                    }
+                });
+
+                // Обновляем форму с новыми данными
+                const nameParts = (userData.name || "").split(" ");
+                const [lastName = "", firstName = "", ...middleNameParts] = nameParts;
+                const middleName = middleNameParts.join(" ");
+
+                form.reset({
+                    firstName,
+                    lastName,
+                    middleName,
+                    newEmail: userData.email || "",
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                });
+            }
+        };
+
+        // Подписываемся на обновления пользователя
+        socket.on('user:updated', handleUserUpdate);
+
+        // Присоединяемся к комнате пользователя
+        socket.emit('join:user', session.user.email);
+
+        return () => {
+            socket.off('user:updated', handleUserUpdate);
+            socket.emit('leave:user', session.user.email);
+        };
+    }, [socket, session, update, form]);
+
+    // Инициализация формы при загрузке
+    useEffect(() => {
+        if (session?.user) {
+            const nameParts = (session.user.name || "").split(" ");
+            const [lastName = "", firstName = "", ...middleNameParts] = nameParts;
+            const middleName = middleNameParts.join(" ");
+
+            form.reset({
+                firstName,
+                lastName,
+                middleName,
+                newEmail: session.user.email || "",
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            });
+        }
+    }, [form, session]);
+
     async function onSubmit(values: z.infer<typeof profileSchema>) {
         try {
             setIsLoading(true);
 
-            // Собираем полное имя
             const fullName = [values.lastName, values.firstName, values.middleName]
                 .filter(Boolean)
                 .join(" ");
@@ -72,34 +137,32 @@ export default function ProfileForm() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    ...values,
-                    name: fullName, // Отправляем полное имя одной строкой
+                    name: fullName,
+                    newEmail: values.newEmail,
+                    currentPassword: values.currentPassword,
+                    newPassword: values.newPassword,
                 }),
             });
 
             if (!response.ok) {
-                const error = await response.text();
-                throw new Error(error);
+                throw new Error(await response.text());
             }
 
-            const updatedUser = await response.json();
-
-            await update({
-                ...session,
-                user: {
-                    ...session?.user,
-                    name: updatedUser.name,
-                    email: updatedUser.email,
+            const data = await response.json();
+            // Обновляем сессию с новыми данными пользователя
+            if(session){
+                if (data.user) {
+                    await update({
+                        ...session,
+                        user: {
+                            ...session.user,
+                            ...data.user
+                        }
+                    });
                 }
-            });
+            }
 
-            await Promise.all([
-                mutate('/api/user/profile'),
-                mutate('/api/mybookings'),
-                mutate('/api/hotels'),
-                mutate((key) => typeof key === 'string' && key.startsWith('/api/'), undefined, { revalidate: true })
-            ]);
-
+            // Обновление произойдет автоматически через сокет
             toast({
                 title: "Успешно!",
                 description: "Профиль обновлен",
@@ -117,28 +180,10 @@ export default function ProfileForm() {
         }
     }
 
-    useEffect(() => {
-        if (session?.user) {
-            // Разбиваем полное имя на части
-            const nameParts = (session.user.name || "").split(" ");
-            const [lastName = "", firstName = "", ...middleNameParts] = nameParts;
-            const middleName = middleNameParts.join(" ");
-
-            form.reset({
-                firstName,
-                lastName,
-                middleName,
-                newEmail: session.user.email || "",
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-        }
-    }, [form, session]);
-
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* ... Rest of the form JSX remains the same ... */}
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <FormField

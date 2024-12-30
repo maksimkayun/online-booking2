@@ -29,7 +29,7 @@ interface HotelListProps {
 
 const HotelList = ({ hotels }: HotelListProps) => {
     const router = useRouter();
-    const { data: session } = useSession()
+    const { data: session } = useSession();
     const { role } = useUserRole();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const { toast } = useToast();
