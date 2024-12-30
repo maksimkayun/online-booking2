@@ -1,13 +1,10 @@
-import Container from '@/components/Container'
-import AddHotelForm from "@/components/hotel/AddHotelForm";
-import { withClientAuthHOC } from "@/lib/withClientAuth";
+import dynamic from 'next/dynamic';
 
-function NewHotelPage() {
-    return (
-        <Container>
-            <AddHotelForm />
-        </Container>
-    )
-};
+const NewHotelPage = dynamic(
+    () => import('@/components/hotel/NewHotelPage'),
+    { ssr: false }
+);
 
-export default withClientAuthHOC(NewHotelPage, ['ADMIN', 'MANAGER']);
+export default function Page() {
+    return <NewHotelPage />;
+}
