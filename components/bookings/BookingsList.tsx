@@ -39,7 +39,8 @@ export default function BookingsList({ bookings, onCancelSuccess }: BookingsList
         );
     }
 
-    const handleCancelBooking = async (bookingId: string) => {
+    const handleCancelBooking = async (e: React.MouseEvent, bookingId: string) => {
+        e.stopPropagation(); // Предотвращаем всплытие события клика
         try {
             setIsLoading(bookingId);
             const response = await fetch(`/api/bookings/${bookingId}`, {
@@ -68,6 +69,10 @@ export default function BookingsList({ bookings, onCancelSuccess }: BookingsList
         } finally {
             setIsLoading(null);
         }
+    };
+
+    const handleNavigate = (path: string) => {
+        router.push(path);
     };
 
     const isBookingActive = (booking: BookingWithDetails) => {
@@ -112,13 +117,11 @@ export default function BookingsList({ bookings, onCancelSuccess }: BookingsList
                             <Card
                                 key={booking.id}
                                 className="cursor-pointer hover:shadow-lg transition-shadow"
+                                onClick={() => handleNavigate(`/hotel/${booking.hotelId}`)}
                             >
                                 <CardHeader className="space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle
-                                            className="line-clamp-1 cursor-pointer"
-                                            onClick={() => router.push(`/hotel/${booking.hotelId}`)}
-                                        >
+                                        <CardTitle className="line-clamp-1">
                                             {booking.Hotel.title}
                                         </CardTitle>
                                         <Badge variant={getBookingStatus(booking).variant}>
@@ -167,12 +170,13 @@ export default function BookingsList({ bookings, onCancelSuccess }: BookingsList
                                                         variant="destructive"
                                                         className="w-full mt-2"
                                                         disabled={isLoading === booking.id}
+                                                        onClick={(e) => e.stopPropagation()} // Предотвращаем всплытие события клика
                                                     >
                                                         <X className="h-4 w-4 mr-2" />
                                                         {isLoading === booking.id ? 'Отмена...' : 'Отменить бронирование'}
                                                     </Button>
                                                 </AlertDialogTrigger>
-                                                <AlertDialogContent>
+                                                <AlertDialogContent onClick={(e) => e.stopPropagation()}> {/* Предотвращаем всплытие клика в модальном окне */}
                                                     <AlertDialogHeader>
                                                         <AlertDialogTitle>
                                                             Отменить бронирование?
@@ -184,7 +188,7 @@ export default function BookingsList({ bookings, onCancelSuccess }: BookingsList
                                                     <AlertDialogFooter>
                                                         <AlertDialogCancel>Отмена</AlertDialogCancel>
                                                         <AlertDialogAction
-                                                            onClick={() => handleCancelBooking(booking.id)}
+                                                            onClick={(e) => handleCancelBooking(e, booking.id)}
                                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                                         >
                                                             Отменить бронирование
