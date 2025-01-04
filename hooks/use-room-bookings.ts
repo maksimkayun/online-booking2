@@ -12,19 +12,20 @@ const fetcher = async (url: string) => {
 };
 
 export function useRoomBookings(hotelId?: string, roomId?: string) {
-    const { data, error, isLoading } = useSWR<Booking[]>(
+    const { data, error, isLoading, mutate } = useSWR<Booking[]>(
         hotelId && roomId ? `/api/hotels/${hotelId}/rooms/${roomId}/bookings` : null,
         fetcher,
         {
-            refreshInterval: 0, // Убираем автообновление
-            revalidateOnFocus: false, // Отключаем ревалидацию при фокусе
+            refreshInterval: 0,
+            revalidateOnFocus: false,
             revalidateIfStale: false
         }
     );
 
     return {
-        bookings: data || [],
+        existingBookings: data || [],
         isLoading,
-        isError: error
+        isError: error,
+        mutate
     };
 }

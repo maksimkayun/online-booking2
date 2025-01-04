@@ -6,20 +6,17 @@ import { useState } from "react";
 import { HotelInfo } from "./details/HotelInfo";
 import { RoomsList } from "./rooms/RoomsList";
 import { BookingForm } from "./booking/BookingForm";
-import { useRoomBookings } from "@/hooks/use-room-bookings";
-import { Loader2 } from "lucide-react";
 
 interface HotelDetailsProps {
     hotel: Hotel & { rooms: Room[] };
     isOwner: boolean;
-    isBookingPage?: boolean;
 }
 
-export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: HotelDetailsProps) {
+export default function HotelDetails({ hotel, isOwner }: HotelDetailsProps) {
     const [selectedRoom, setSelectedRoom] = useState<string | undefined>(undefined);
 
-    // Получаем существующие бронирования для выбранной комнаты
-    const { bookings, isLoading } = useRoomBookings(hotel.id, selectedRoom);
+    // Находим выбранную комнату
+    const selectedRoomDetails = selectedRoom ? hotel.rooms.find(r => r.id === selectedRoom) : null;
 
     if (isOwner) {
         return (
@@ -33,9 +30,6 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
             </div>
         );
     }
-
-    // Находим выбранную комнату
-    const selectedRoomDetails = selectedRoom ? hotel.rooms.find(r => r.id === selectedRoom) : null;
 
     return (
         <div className="space-y-6">
@@ -55,17 +49,10 @@ export default function HotelDetails({ hotel, isOwner, isBookingPage = false }: 
                     <>
                         <Separator className="my-8" />
                         <div className="max-w-3xl mx-auto">
-                            {isLoading ? (
-                                <div className="flex items-center justify-center p-8">
-                                    <Loader2 className="h-8 w-8 animate-spin" />
-                                </div>
-                            ) : (
-                                <BookingForm
-                                    room={selectedRoomDetails}
-                                    hotelId={hotel.id}
-                                    existingBookings={bookings}
-                                />
-                            )}
+                            <BookingForm
+                                room={selectedRoomDetails}
+                                hotelId={hotel.id}
+                            />
                         </div>
                     </>
                 )}

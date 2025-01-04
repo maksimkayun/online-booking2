@@ -1,36 +1,47 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import {useEffect, useMemo, useState} from "react";
 import { Room } from "@prisma/client";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, isSameDay, isWithinInterval } from "date-fns";
 import { ru } from "date-fns/locale";
 import { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createBooking } from "@/actions/createBooking";
 import { useSession } from "next-auth/react";
+import {useRoomBookings} from "@/hooks/use-room-bookings";
 
 interface BookingFormProps {
     room: Room;
     hotelId: string;
-    existingBookings: Array<{ startDate: string; endDate: string; }>;
 }
 
-export function BookingForm({ room, hotelId, existingBookings }: BookingFormProps) {
+export function BookingForm({ room, hotelId }: BookingFormProps) {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [isLoading, setIsLoading] = useState(false);
-    const {toast} = useToast();
+    const { toast } = useToast();
     const router = useRouter();
-    const {data: session} = useSession();
+    const { data: session } = useSession();
+    const {  existingBookings, mutate } = useRoomBookings(hotelId, room.id);
 
-    const totalNights = dateRange?.from && dateRange?.to
-        ? Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
-        : 0;
-    const totalPrice = room.roomPrice * totalNights;
+    const totalNights = useMemo(() => {
+        if (!dateRange?.from || !dateRange?.to) return 0;
+        // Получаем разницу в днях, вычитаем 1 чтобы получить количество ночей
+        const days = Math.round((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.max(days, 1); // Минимум 1 ночь
+    }, [dateRange]);
+
+    useEffect(() => {
+        mutate(); // Обновляем данные при монтировании компонента
+    }, [mutate]);
+
+    const totalPrice = useMemo(() => {
+        return room.roomPrice * totalNights;
+    }, [room.roomPrice, totalNights]);
 
     // Преобразуем даты бронирований из строк в объекты Date
     const bookings = useMemo(() => {
@@ -111,9 +122,31 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
         }
 
         // Проверяем пересечения с существующими бронированиями
-        return bookings.some(booking =>
-            date >= booking.startDate && date <= booking.endDate
-        );
+        return bookings.some(booking => {
+            const bookingStart = new Date(booking.startDate);
+            const bookingEnd = new Date(booking.endDate);
+            return isWithinInterval(date, { start: bookingStart, end: bookingEnd });
+        });
+    };
+
+    const handleSelect = (range: DateRange | undefined) => {
+        if (!range) {
+            setDateRange(undefined);
+            return;
+        }
+
+        // Если выбрана только начальная дата
+        if (range.from && !range.to) {
+            setDateRange(range);
+            return;
+        }
+
+        // Если выбраны обе даты и они одинаковые, игнорируем выбор
+        if (range.from && range.to && isSameDay(range.from, range.to)) {
+            return;
+        }
+
+        setDateRange(range);
     };
 
     return (
@@ -148,7 +181,7 @@ export function BookingForm({ room, hotelId, existingBookings }: BookingFormProp
                                 mode="range"
                                 defaultMonth={dateRange?.from}
                                 selected={dateRange}
-                                onSelect={setDateRange}
+                                onSelect={handleSelect}
                                 numberOfMonths={2}
                                 disabled={isDateDisabled}
                                 locale={ru}
