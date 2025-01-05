@@ -5,7 +5,6 @@ import Container from "@/components/Container";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import SearchInput from "@/components/SearchInput";
 import { NavMenu } from "@/components/layout/NavMenu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -76,7 +75,7 @@ const NavBar = () => {
                         <div className="font-bold text-xl">Online booking</div>
                     </div>
 
-                    <SearchInput />
+                    {/*<SearchInput />*/}
 
                     <div className="flex gap-3 items-center">
                         <NavMenu />

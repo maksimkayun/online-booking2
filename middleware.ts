@@ -8,12 +8,13 @@ const publicRoutes = [
     '/api/auth/(.*)',
     '/api/register',
     '/api/hotels',
-    '/api/socket/(.*)', // Добавляем этот маршрут
+    '/api/socket/(.*)',
 ];
 
 const managerRoutes = [
     '/hotel/new',
     '/hotel/(.*)/(edit|rooms)',
+    '/my-hotels'
 ];
 
 const adminRoutes = [
@@ -61,7 +62,7 @@ export default withAuth(
     },
     {
         callbacks: {
-            authorized: () => true // Отключаем стандартную проверку авторизации
+            authorized: () => true
         },
     }
 );

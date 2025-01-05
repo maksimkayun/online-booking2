@@ -170,7 +170,7 @@ export default function BookingsList({ bookings, onCancelSuccess }: BookingsList
                                                         variant="destructive"
                                                         className="w-full mt-2"
                                                         disabled={isLoading === booking.id}
-                                                        onClick={(e) => e.stopPropagation()} // Предотвращаем всплытие события клика
+                                                        onClick={(e) => e.stopPropagation()}
                                                     >
                                                         <X className="h-4 w-4 mr-2" />
                                                         {isLoading === booking.id ? 'Отмена...' : 'Отменить бронирование'}
