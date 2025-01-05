@@ -2,24 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useEffect } from "react";
-//import { useRouter } from "next/navigation";
+import { useEffect } from 'react';
+import { useNotFound } from '@/contexts/NotFoundContext';
 
 export default function NotFound() {
-    //const router = useRouter();
+    const { setIsNotFound } = useNotFound();
 
     useEffect(() => {
-        // Отключаем автоматические запросы сессии для этой страницы
-        const preventSessionCheck = (e: Event) => {
-            e.stopPropagation();
-        };
-
-        document.addEventListener('visibilitychange', preventSessionCheck);
-
-        return () => {
-            document.removeEventListener('visibilitychange', preventSessionCheck);
-        };
-    }, []);
+        setIsNotFound(true);
+        return () => setIsNotFound(false);
+    }, [setIsNotFound]);
 
     return (
         <div className="h-[calc(100vh-80px)] flex flex-col items-center justify-center gap-4 bg-background text-foreground">

@@ -9,6 +9,7 @@ const publicRoutes = [
     '/api/register',
     '/api/hotels',
     '/api/socket/(.*)',
+    '/_not-found'
 ];
 
 const managerRoutes = [
@@ -26,33 +27,27 @@ export default withAuth(
         const token = req.nextauth.token;
         const pathname = req.nextUrl.pathname;
 
-        // Публичные маршруты доступны всем
-        if (publicRoutes.some(route =>
-            pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`))
-        )) {
+
+        // Обработка публичных маршрутов
+        if (publicRoutes.some(route => pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`)))) {
             return NextResponse.next();
         }
 
-        // Для остальных маршрутов требуется авторизация
+        // Проверка сессии и прав для остальных маршрутов
         if (!token) {
             const signInUrl = new URL('/auth/signin', req.url);
             signInUrl.searchParams.set('callbackUrl', pathname);
             return NextResponse.redirect(signInUrl);
         }
 
-        // Проверка прав для маршрутов менеджера
-        if (managerRoutes.some(route =>
-            pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`))
-        )) {
+        // Правила для менеджера и администратора
+        if (managerRoutes.some(route => pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`)))) {
             if (!token.role || (token.role !== 'ADMIN' && token.role !== 'MANAGER')) {
                 return NextResponse.redirect(new URL('/', req.url));
             }
         }
 
-        // Проверка прав для маршрутов администратора
-        if (adminRoutes.some(route =>
-            pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`))
-        )) {
+        if (adminRoutes.some(route => pathname.match(new RegExp(`^${route.replace(/\*/g, '.*')}$`)))) {
             if (!token.role || token.role !== 'ADMIN') {
                 return NextResponse.redirect(new URL('/', req.url));
             }
@@ -68,7 +63,5 @@ export default withAuth(
 );
 
 export const config = {
-    matcher: [
-        '/((?!_next/static|_next/image|favicon.ico).*)',
-    ],
+    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
