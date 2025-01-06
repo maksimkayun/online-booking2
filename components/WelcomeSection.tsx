@@ -1,3 +1,5 @@
+'use client';
+
 import { BadgeCheck, Building2, Clock, Shield } from 'lucide-react';
 
 const WelcomeSection = () => {
