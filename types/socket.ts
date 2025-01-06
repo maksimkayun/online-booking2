@@ -30,6 +30,7 @@ export interface RoomBooking {
 export interface ServerToClientEvents {
     'booking:created': (data: BookingWithDetails) => void;
     'booking:cancelled': (data: BookingWithDetails) => void;
+    'booking:updated': (data: BookingWithDetails) => void;
     'hotel:created': (data: HotelWithRooms) => void;
     'hotel:updated': (data: HotelWithRooms) => void;
     'hotel:deleted': (data: string) => void;
@@ -45,6 +46,8 @@ export interface ClientToServerEvents {
     'leave:room': (roomId: string) => void;
     'join:admin': () => void;
     'leave:admin': () => void;
+    'join-user-bookings': (userId: string) => void;
+    'leave-user-bookings': (userId: string) => void;
 }
 
 export interface SocketServer {

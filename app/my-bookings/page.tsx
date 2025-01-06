@@ -7,6 +7,7 @@ import { useSocket } from "@/lib/socket";
 import BookingsList from "@/components/bookings/BookingsList";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import {BookingWithDetails} from "@/types/socket";
 
 export default function MyBookingsPage() {
     const { bookings, isLoading, mutate } = useBookings();
@@ -37,7 +38,7 @@ export default function MyBookingsPage() {
         socket.emit('join-user-bookings', userId);
 
         // Обработка события отмены бронирования
-        const handleBookingCancelled = (data: { bookingId: string; userId: string }) => {
+        const handleBookingCancelled = (data: BookingWithDetails) => {
             if (data.userId === userId) {
                 mutate(); // Обновляем список бронирований
             }

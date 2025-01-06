@@ -1,130 +1,63 @@
-import { PropsWithChildren, useEffect, useState, useCallback } from 'react';
-import { Socket } from 'socket.io-client';
+import { PropsWithChildren, useEffect, useState } from 'react';
+import type { Socket } from 'socket.io-client';
 import { SocketContext } from '@/lib/socket';
 import { useSession } from 'next-auth/react';
-import { BookingWithDetails, HotelWithRooms, UserUpdateData, RoomBooking } from "@/types/socket";
-import {User} from "@prisma/client";
+import type { ServerToClientEvents, ClientToServerEvents } from '@/types/socket';
 
-export interface ServerToClientEvents {
-    'booking:created': (data: BookingWithDetails) => void;
-    'booking:cancelled': (data: BookingWithDetails) => void;
-    'hotel:created': (data: HotelWithRooms) => void;
-    'hotel:updated': (data: HotelWithRooms) => void;
-    'hotel:deleted': (data: string) => void;
-    'user:updated': (data: UserUpdateData) => void;
-    'room:bookings:updated': (data: RoomBooking) => void;
-    'permissions:updated': (data: User[]) => void;
-}
-export type ClientToServerEvents = {
-    'join:user': (userId: string) => void;
-    'leave:user': (userId: string) => void;
-    'join:room': (roomId: string) => void;
-    'leave:room': (roomId: string) => void;
-    'join:admin': () => void;
-    'leave:admin': () => void;
-};
+type SocketType = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 export function SocketProvider({ children }: PropsWithChildren) {
-    const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-    const [isConnected, setIsConnected] = useState(false);
-    const { data: session, status, update } = useSession();
-
-    // Обработчик обновления данных пользователя
-    const handleUserUpdate = useCallback(async (data: UserUpdateData) => {
-        if (session?.user?.email === data.email) {
-            await update({
-                ...session,
-                user: {
-                    // ...session?.user,
-                    ...data
-                }
-            });
-        }
-    }, [session, update]);
+    const [socket, setSocket] = useState<SocketType | null>(null);
+    const { data: session, status } = useSession();
 
     useEffect(() => {
-        let socketInstance: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+        let socketInstance: SocketType | null = null;
 
         const initSocket = async () => {
-            if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_APP_URL || status !== 'authenticated') {
-                return;
+            // Создаем сокет только если пользователь аутентифицирован
+            if (status !== 'authenticated' || !process.env.NEXT_PUBLIC_APP_URL) {
+                return null;
             }
 
             try {
-                const io = (await import('socket.io-client')).io;
+                // Динамический импорт socket.io-client
+                const { io } = await import('socket.io-client');
 
-                socketInstance = io(process.env.NEXT_PUBLIC_APP_URL, {
+                const newSocket = io(process.env.NEXT_PUBLIC_APP_URL, {
                     path: '/api/socket/io',
                     addTrailingSlash: false,
-                    transports: ['polling'],
-                    reconnection: true,
-                    reconnectionAttempts: 3,
-                    reconnectionDelay: 1000,
-                }) as Socket<ServerToClientEvents, ClientToServerEvents>;
+                }) as SocketType;
 
-                socketInstance.on('connect', () => {
+                // Базовые обработчики событий сокета
+                newSocket.on('connect', () => {
                     console.log('Socket connected');
-                    setIsConnected(true);
 
-                    // Подписываемся на обновления пользователя при подключении
+                    // Подключаемся к комнате пользователя
                     if (session?.user?.email) {
-                        socketInstance?.emit('join:user', session.user.email);
-
-                        // Подписываемся на обновление данных пользователя
-                        socketInstance?.on('user:updated', handleUserUpdate);
+                        newSocket.emit('join:user', session.user.email);
                     }
 
-                    // Для админов подписываемся на специальные события
+                    // Админ подключается к админской комнате
                     if (session?.user?.role === 'ADMIN') {
-                        socketInstance?.emit('join:admin');
-                    }
-
-                });
-
-                // Добавляем обработчик обновления пользователя
-                socketInstance.on('user:updated', async (userData) => {
-                    if (session?.user?.email === userData.email) {
-                        try {
-                            await update({
-                                ...session,
-                                user: {
-                                    ...session.user,
-                                    ...userData
-                                }
-                            });
-                        } catch (error) {
-                            console.error('Error updating session:', error);
-                        }
+                        newSocket.emit('join:admin');
                     }
                 });
 
-                socketInstance.on('disconnect', () => {
-                    console.log('Socket disconnected');
-                    setIsConnected(false);
-                });
-
-                socketInstance.on('connect_error', (error) => {
-                    console.error('Socket connection error:', error);
-                    setIsConnected(false);
-                });
-
-                setSocket(socketInstance);
+                return newSocket;
             } catch (error) {
                 console.error('Socket initialization error:', error);
-                setSocket(null);
-                setIsConnected(false);
+                return null;
             }
         };
 
-        if (status === 'authenticated') {
-            initSocket();
-        } else {
-            setSocket(null);
-            setIsConnected(false);
-        }
+        initSocket().then(instance => {
+            socketInstance = instance;
+            setSocket(instance);
+        });
 
+        // Очистка при размонтировании
         return () => {
-            if (socketInstance) {
+            if (socketInstance?.connected) {
                 if (session?.user?.email) {
                     socketInstance.emit('leave:user', session.user.email);
                 }
@@ -132,14 +65,12 @@ export function SocketProvider({ children }: PropsWithChildren) {
                     socketInstance.emit('leave:admin');
                 }
                 socketInstance.disconnect();
-                setSocket(null);
-                setIsConnected(false);
             }
         };
-    }, [status, session?.user, handleUserUpdate]);
+    }, [session?.user?.email, session?.user?.role, status]);
 
     return (
-        <SocketContext.Provider value={{ socket, isConnected }}>
+        <SocketContext.Provider value={{ socket, isConnected: Boolean(socket?.connected) }}>
             {children}
         </SocketContext.Provider>
     );

@@ -100,7 +100,7 @@ export default function ProfileForm() {
 
         return () => {
             socket.off('user:updated', handleUserUpdate);
-            socket.emit('leave:user', session.user.email);
+            socket.emit('leave:user', session.user?.email ?? "");
         };
     }, [socket, session, update, form]);
 

@@ -1,63 +1,87 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
-import Container from "@/components/Container";
-import Image from "next/image";
+import { memo } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Container from "@/components/Container";
 import { Button } from "@/components/ui/button";
 import { NavMenu } from "@/components/layout/NavMenu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {useEffect, useState} from "react";
-import {Hotel, User} from "lucide-react";
-import {ExitIcon} from "@radix-ui/react-icons"; // Добавляем иконку как запасной вариант
+import { Hotel, User } from "lucide-react";
+import { ExitIcon } from "@radix-ui/react-icons";
+import { signOut } from "next-auth/react";
 
-const NavBar = () => {
-    const router = useRouter();
+const NavBar = memo(() => {
     const { data: session, status } = useSession();
-    const [logoError, setLogoError] = useState(false);
+    const router = useRouter();
 
-    useEffect(() => {
-        if (status === 'authenticated') {
-            // Можно добавить дополнительную логику при необходимости
-            router.refresh();
-        }
-    }, [session, status, router]);
+    const handleNavigation = (path: string) => {
+        router.push(path);
+    };
 
     const handleSignOut = () => {
         signOut({ callbackUrl: '/' });
     };
 
-    const handleNavigate = (path: string) => {
-        // Используем setTimeout чтобы дать время на закрытие диалога/дропдауна
-        setTimeout(() => {
-            router.push(path);
-        }, 0);
-    };
+    const Logo = () => (
+        <div
+            className="flex items-center gap-1 cursor-pointer"
+            onClick={() => handleNavigation('/')}
+        >
+            <Hotel className="w-[30px] h-[30px]" />
+            <div className="font-bold text-xl">Online booking</div>
+        </div>
+    );
 
-    const handleLogoError = () => {
-        setLogoError(true);
-    };
+    const UserMenu = () => {
+        if (status === 'loading') return null;
 
-    const Logo = () => {
-        if (logoError) {
-            return <Hotel className="w-[30px] h-[30px]" />;
+        if (status === 'authenticated') {
+            return (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Avatar className="cursor-pointer">
+                            <AvatarFallback>
+                                {session.user?.name?.[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                        </Avatar>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleNavigation('/profile')}>
+                            <User className="mr-2 h-4 w-4" />
+                            Профиль
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleSignOut}>
+                            <ExitIcon className="mr-2 h-4 w-4" />
+                            Выйти
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            );
         }
 
         return (
-            <Image
-                src="/logo.svg"
-                alt="logo"
-                width={30}
-                height={30}
-                onError={handleLogoError}
-                priority
-            />
+            <>
+                <Button
+                    onClick={() => handleNavigation('/auth/signin')}
+                    variant="outline"
+                    size="sm"
+                >
+                    Войти
+                </Button>
+                <Button
+                    onClick={() => handleNavigation('/auth/signup')}
+                    size="sm"
+                >
+                    Регистрация
+                </Button>
+            </>
         );
     };
 
@@ -65,67 +89,17 @@ const NavBar = () => {
         <div className="sticky top-0 border border-b-primary/10 bg-secondary z-50">
             <Container>
                 <div className="flex justify-between items-center">
-                    <div
-                        className="flex items-center gap-1 cursor-pointer"
-                        onClick={() => router.push('/')}
-                    >
-                        <div className="relative w-[30px] h-[30px]">
-                            <Logo />
-                        </div>
-                        <div className="font-bold text-xl">Online booking</div>
-                    </div>
-
-                    {/*<SearchInput />*/}
-
+                    <Logo />
                     <div className="flex gap-3 items-center">
                         <NavMenu />
-
-                        {status === 'authenticated' ? (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Avatar className="cursor-pointer">
-                                        <AvatarImage src={session.user?.image || ''} />
-                                        <AvatarFallback>
-                                            {session.user?.name?.[0]?.toUpperCase() || 'U'}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                        className="cursor-pointer"
-                                        onClick={() => handleNavigate('/profile')}
-                                    >
-                                        <User className="mr-2 h-4 w-4" />
-                                        Профиль
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleSignOut}>
-                                        <ExitIcon className="mr-2 h-4 w-4" />
-                                        Выйти
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        ) : (
-                            <>
-                                <Button
-                                    onClick={() => router.push('/auth/signin')}
-                                    variant="outline"
-                                    size="sm"
-                                >
-                                    Войти
-                                </Button>
-                                <Button
-                                    onClick={() => router.push('/auth/signup')}
-                                    size="sm"
-                                >
-                                    Регистрация
-                                </Button>
-                            </>
-                        )}
+                        <UserMenu />
                     </div>
                 </div>
             </Container>
         </div>
     );
-};
+});
+
+NavBar.displayName = 'NavBar';
 
 export default NavBar;

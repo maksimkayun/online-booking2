@@ -8,7 +8,6 @@ export default async function Home() {
             <WelcomeSection />
             <Separator/>
             <div className="space-y-6">
-                <h2 className="text-3xl font-bold text-center">Популярные отели</h2>
                 <HotelsClientWrapper/>
             </div>
         </div>

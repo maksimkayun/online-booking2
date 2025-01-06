@@ -1,10 +1,11 @@
 import { Socket } from 'socket.io-client';
 import { createContext, useContext } from 'react';
+import type { ServerToClientEvents, ClientToServerEvents } from '@/types/socket';
 
-interface SocketContextType {
-    socket: Socket | null;
+type SocketContextType = {
+    socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
     isConnected: boolean;
-}
+};
 
 export const SocketContext = createContext<SocketContextType>({
     socket: null,
