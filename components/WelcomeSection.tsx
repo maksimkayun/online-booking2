@@ -1,10 +1,36 @@
 'use client';
 
 import { BadgeCheck, Building2, Clock, Shield } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { cn } from '@/lib/utils';
 
 const WelcomeSection = () => {
+    const { data: session } = useSession();
+    const [isVisible, setIsVisible] = useState(true);
+    const [hasVisited, setHasVisited] = useState(false);
+
+    useEffect(() => {
+        // Проверяем, посещал ли пользователь страницу ранее
+        const visited = localStorage.getItem('hasVisitedWelcome');
+
+        if (session?.user && visited === 'true') {
+            setHasVisited(true);
+            // Добавляем небольшую задержку для анимации
+            setTimeout(() => setIsVisible(false), 100);
+        } else {
+            localStorage.setItem('hasVisitedWelcome', 'true');
+        }
+    }, [session]);
+
+    // Если секция скрыта и пользователь уже посещал страницу, не рендерим компонент
+    if (!isVisible && hasVisited) return null;
+
     return (
-        <div className="py-12 space-y-12">
+        <div className={cn(
+            "py-12 space-y-12 transition-all duration-1000 ease-in-out",
+            hasVisited && !isVisible && "opacity-0 transform translate-y-[-20px]"
+        )}>
             {/* Hero section */}
             <div className="text-center space-y-4">
                 <h1 className="text-4xl font-bold">
