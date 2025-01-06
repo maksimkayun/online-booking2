@@ -27,6 +27,7 @@ export function BookingForm({ room, hotelId }: BookingFormProps) {
     const router = useRouter();
     const { data: session } = useSession();
     const {  existingBookings, mutate } = useRoomBookings(hotelId, room.id);
+    const [shouldUpdate, setShouldUpdate] = useState(true);
 
     const totalNights = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return 0;
@@ -36,8 +37,11 @@ export function BookingForm({ room, hotelId }: BookingFormProps) {
     }, [dateRange]);
 
     useEffect(() => {
-        mutate(); // Обновляем данные при монтировании компонента
-    }, [mutate]);
+        if (shouldUpdate) {
+            mutate();
+            setShouldUpdate(false);
+        }
+    }, [mutate, shouldUpdate]);
 
     const totalPrice = useMemo(() => {
         return room.roomPrice * totalNights;
@@ -91,6 +95,7 @@ export function BookingForm({ room, hotelId }: BookingFormProps) {
                 description: "Бронирование создано",
             });
 
+            setShouldUpdate(true); // Устанавливаем флаг для обновления данных
             router.push('/my-bookings');
         } catch (error) {
             console.error('Booking error:', error);
