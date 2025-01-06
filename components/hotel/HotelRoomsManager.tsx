@@ -1,4 +1,3 @@
-// components/hotel/HotelRoomsManager.tsx
 'use client';
 
 import { Room } from "@prisma/client";
