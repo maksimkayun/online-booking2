@@ -12,7 +12,6 @@ body {
   }
 }
 
-/* Add these new styles */
 .main-content {
   position: relative;
   z-index: 1;
@@ -20,6 +19,23 @@ body {
 
 .dialog-content {
   z-index: 100;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Card hover effects */
+.card {
+  transform: translateY(0);
+  transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+  transform: translateY(-4px);
 }
 
 @layer base {
@@ -51,7 +67,6 @@ body {
     --radius: 0.5rem;
   }
 
-  /* Уменьшаем базовый размер шрифта */
   html {
     font-size: 14px;
   }
@@ -59,6 +74,7 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: Arial, Helvetica, sans-serif;
