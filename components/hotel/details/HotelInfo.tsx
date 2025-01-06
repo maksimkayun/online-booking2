@@ -7,8 +7,12 @@ import { useRouter } from "next/navigation";
 import HotelRating from "@/components/ui/HotelRating";
 
 interface HotelInfoProps {
-    hotel: Hotel & { rooms: Room[] };
+    hotel: Omit<Hotel, 'rating'> & {
+        rating: number;
+        rooms: Room[];
+    };
     isOwner: boolean;
+    isBookingPage?: boolean;
 }
 
 export function HotelInfo({ hotel, isOwner }: HotelInfoProps) {

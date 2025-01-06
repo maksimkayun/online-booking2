@@ -8,8 +8,12 @@ import { RoomsList } from "./rooms/RoomsList";
 import { BookingForm } from "./booking/BookingForm";
 
 interface HotelDetailsProps {
-    hotel: Hotel & { rooms: Room[] };
+    hotel: Omit<Hotel, 'rating'> & {
+        rating: number;
+        rooms: Room[];
+    };
     isOwner: boolean;
+    isBookingPage?: boolean;
 }
 
 export default function HotelDetails({ hotel, isOwner }: HotelDetailsProps) {

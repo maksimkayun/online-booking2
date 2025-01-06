@@ -2,8 +2,14 @@
 // @ts-ignore
 
 import { prismadb } from "@/lib/prismadb";
+import { Hotel, Room } from "@prisma/client";
 
-export const getHotelById = async (hotelId: string) => {
+interface HotelWithRooms extends Omit<Hotel, 'rating'> {
+    rating: number;
+    rooms: Room[];
+}
+
+export const getHotelById = async (hotelId: string): Promise<HotelWithRooms | null> => {
     try {
         const hotel = await prismadb.hotel.findUnique({
             where: {
@@ -16,11 +22,11 @@ export const getHotelById = async (hotelId: string) => {
 
         if (!hotel) return null;
 
-        // Преобразуем Decimal в число
+        // Convert Decimal to number for the rating
         return {
             ...hotel,
             rating: hotel.rating.toNumber(),
-            rooms: hotel.rooms // rooms не содержат Decimal, поэтому их оставляем как есть
+            rooms: hotel.rooms
         };
     } catch (error) {
         console.error('[GET_HOTEL]', error);
