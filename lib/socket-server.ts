@@ -8,8 +8,7 @@ import {
     SocketServer,
     UserUpdateData,
     BookingWithDetails,
-    HotelWithRooms,
-    RoomBooking
+    HotelWithRooms
 } from '@/types/socket';
 import { User } from '@prisma/client';
 

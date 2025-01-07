@@ -24,7 +24,6 @@ const StarRating = ({ value, onValueChange }: StarRatingProps) => {
     const renderStars = () => {
         const stars = [];
         for (let i = 0; i < 5; i++) {
-            const starValue = i + 1;
             const fillPercentage = Math.min(Math.max((currentRating - i) * 100, 0), 100);
 
             stars.push(

@@ -70,6 +70,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             router.push("/");
             router.refresh();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({
                 variant: "destructive",
