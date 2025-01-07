@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
 import { getServerSession } from "next-auth/next";
-import {authOptions} from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
 
 export async function PATCH(
     req: Request,
@@ -46,12 +46,6 @@ export async function PATCH(
                 rating: parseFloat(rating),
             },
         });
-
-        // Отправляем событие через веб-сокет
-        const res = req as any;
-        if (res.socket?.server?.io) {
-            res.socket.server.io.emit('hotel:updated', updatedHotel);
-        }
 
         return NextResponse.json(updatedHotel);
     } catch (error) {
@@ -120,12 +114,6 @@ export async function DELETE(
                 id: params.hotelId,
             },
         });
-
-        // Отправляем событие через веб-сокет
-        const res = req as any;
-        if (res.socket?.server?.io) {
-            res.socket.server.io.emit('hotel:deleted', params.hotelId);
-        }
 
         return NextResponse.json(deletedHotel);
     } catch (error) {

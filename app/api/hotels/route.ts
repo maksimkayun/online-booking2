@@ -23,12 +23,6 @@ export async function POST(req: Request) {
             }
         });
 
-        // Отправляем событие через веб-сокет
-        const res = req as any;
-        if (res.socket && res.socket.server && res.socket.server.io) {
-            res.socket.server.io.emit('hotel:created', hotel);
-        }
-
         return NextResponse.json(hotel);
     } catch (error) {
         console.error('[HOTELS_POST]', error);

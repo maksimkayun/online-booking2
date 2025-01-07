@@ -53,16 +53,6 @@ export async function DELETE(
             },
         });
 
-        // Отправляем событие через веб-сокет
-        const res = req as any;
-        if (res.socket?.server?.io) {
-            // Оповещаем пользователя об отмене его бронирования
-            res.socket.server.io.to(`user:${user.id}:bookings`).emit('booking:cancelled', {
-                bookingId: params.bookingId,
-                userId: user.id
-            });
-        }
-
         return NextResponse.json(deletedBooking);
     } catch (error) {
         console.error('[BOOKING_DELETE]', error);
