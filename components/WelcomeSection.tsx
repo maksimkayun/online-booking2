@@ -6,30 +6,25 @@ import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 const WelcomeSection = () => {
-    const { data: session } = useSession();
-    const [isVisible, setIsVisible] = useState(true);
-    const [hasVisited, setHasVisited] = useState(false);
+    const { status } = useSession();
+    const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        // Проверяем, посещал ли пользователь страницу ранее
-        const visited = localStorage.getItem('hasVisitedWelcome');
-
-        if (session?.user && visited === 'true') {
-            setHasVisited(true);
-            // Добавляем небольшую задержку для анимации
-            setTimeout(() => setIsVisible(false), 100);
-        } else {
-            localStorage.setItem('hasVisitedWelcome', 'true');
+        // Показываем секцию только если пользователь не авторизован
+        if (status === 'unauthenticated') {
+            setIsVisible(true);
+        } else if (status === 'authenticated') {
+            setIsVisible(false);
         }
-    }, [session]);
+    }, [status]);
 
-    // Если секция скрыта и пользователь уже посещал страницу, не рендерим компонент
-    if (!isVisible && hasVisited) return null;
+    // Не рендерим компонент, если он невидим
+    if (!isVisible) return null;
 
     return (
         <div className={cn(
             "py-12 space-y-12 transition-all duration-1000 ease-in-out",
-            hasVisited && !isVisible && "opacity-0 transform translate-y-[-20px]"
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
         )}>
             {/* Hero section */}
             <div className="text-center space-y-4">
