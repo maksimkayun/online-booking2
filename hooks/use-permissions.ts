@@ -35,6 +35,7 @@ export function useUserRole() {
         role: session?.user?.role as UserRole || 'USER',
         isAdmin: session?.user?.role === 'ADMIN',
         isManager: session?.user?.role === 'MANAGER',
-        isAdminOrManager: ['ADMIN', 'MANAGER'].includes(session?.user?.role || '')
+        isAdminOrManager: ['ADMIN', 'MANAGER'].includes(session?.user?.role || ''),
+        email: session?.user?.email
     };
 }

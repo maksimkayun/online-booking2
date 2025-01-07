@@ -20,7 +20,6 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import {useSession} from "next-auth/react";
 import HotelRating from "@/components/ui/HotelRating";
 
 interface HotelListProps {
@@ -29,8 +28,7 @@ interface HotelListProps {
 
 const HotelList = ({ hotels }: HotelListProps) => {
     const router = useRouter();
-    const { data: session } = useSession();
-    const { role } = useUserRole();
+    const { role, email } = useUserRole();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const { toast } = useToast();
 
@@ -85,7 +83,7 @@ const HotelList = ({ hotels }: HotelListProps) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hotels.map((hotel) => {
-                const isOwner = hotel.userEmail === session?.user?.email;
+                const isOwner = hotel.userEmail === email;
 
                 return (
                     <Card key={hotel.id} className="flex flex-col h-full overflow-hidden">
