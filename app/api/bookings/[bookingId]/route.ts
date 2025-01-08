@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
-import {getServerSession} from "next-auth/next";
-import {authOptions} from "@/lib/auth";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function DELETE(
     req: Request,
@@ -23,23 +23,36 @@ export async function DELETE(
             return new NextResponse("User not found", { status: 404 });
         }
 
-        // Проверяем существование брони и принадлежность текущему пользователю
+        // Получаем бронирование и связанный с ним отель
         const booking = await prismadb.booking.findUnique({
             where: {
                 id: params.bookingId,
             },
+            include: {
+                Hotel: true
+            }
         });
 
         if (!booking) {
             return new NextResponse("Booking not found", { status: 404 });
         }
 
-        if (booking.userId !== user.id) {
+        // Проверяем права на отмену брони:
+        // 1. Пользователь может отменить свою бронь
+        // 2. Администратор может отменить любую бронь
+        // 3. Менеджер может отменить бронь в своем отеле
+        const isAdmin = user.role === 'ADMIN';
+        const isManager = user.role === 'MANAGER';
+        const isOwner = booking.userId === user.id;
+        const isHotelManager = isManager && booking.Hotel.userEmail === session.user.email;
+
+        if (!isAdmin && !isOwner && !isHotelManager) {
             return new NextResponse("Forbidden", { status: 403 });
         }
 
         // Проверяем, не началось ли уже проживание
-        if (new Date(booking.startDate) <= new Date()) {
+        // Пропускаем эту проверку для админов
+        if (!isAdmin && new Date(booking.startDate) <= new Date()) {
             return new NextResponse(
                 "Cannot cancel booking that has already started",
                 { status: 400 }

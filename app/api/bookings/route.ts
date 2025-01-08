@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prismadb";
 import { getServerSession } from "next-auth/next";
-import {authOptions} from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(req: Request) {
     try {
@@ -27,6 +27,23 @@ export async function POST(req: Request) {
 
         if (!roomId || !hotelId || !startDate || !endDate || !totalPrice) {
             return new NextResponse("Missing required fields", { status: 400 });
+        }
+
+        // Проверяем права на создание бронирования
+        const hotel = await prismadb.hotel.findUnique({
+            where: { id: hotelId }
+        });
+
+        if (!hotel) {
+            return new NextResponse("Hotel not found", { status: 404 });
+        }
+
+        // Владелец отеля не может бронировать свой отель
+        if (hotel.userEmail === session.user.email) {
+            return new NextResponse(
+                "Hotel owner cannot book their own hotel",
+                { status: 400 }
+            );
         }
 
         const newStartDate = new Date(startDate);

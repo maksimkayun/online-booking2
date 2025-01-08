@@ -1,24 +1,26 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
-import { BookOpenCheck, ChevronsUpDown, Hotel, Plus, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import * as React from "react";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { BookOpenCheck, ChevronsUpDown, Hotel, Plus, Settings, CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useUserRole } from "@/hooks/use-permissions"
+} from "@/components/ui/dropdown-menu";
+import { useUserRole } from "@/hooks/use-permissions";
 
 export function NavMenu() {
-    const router = useRouter()
-    const { role } = useUserRole()
+    const router = useRouter();
+    const pathname = usePathname();
+    const params = useParams();
+    const { role } = useUserRole();
 
-    const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
-    const isAdmin = role === 'ADMIN'
+    const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER';
+    const isAdmin = role === 'ADMIN';
 
     const handleNavigate = (path: string) => {
         // Используем setTimeout чтобы дать время на закрытие диалога/дропдауна
@@ -51,6 +53,15 @@ export function NavMenu() {
                             <Hotel className="mr-2 h-4 w-4" />
                             Мои отели
                         </DropdownMenuItem>
+                        {pathname?.includes('/hotel/') && params?.hotelId && (
+                            <DropdownMenuItem
+                                className="cursor-pointer"
+                                onClick={() => handleNavigate(`/hotel/${params.hotelId}/bookings`)}
+                            >
+                                <CalendarDays className="mr-2 h-4 w-4" />
+                                Управление бронями
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                     </>
                 )}
@@ -77,5 +88,5 @@ export function NavMenu() {
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
-    )
+    );
 }
