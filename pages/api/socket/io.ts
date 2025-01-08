@@ -1,6 +1,6 @@
 import {NextApiRequest} from 'next';
-import { initSocketServer } from '@/lib/socket-server';
 import {NextApiResponseSocket} from "@/types/socket";
+import { Server } from "socket.io";
 
 export const config = {
     api: {
@@ -8,14 +8,24 @@ export const config = {
     },
 };
 
-const ioHandler = (req: NextApiRequest, res: NextApiResponseSocket) => {
-    try {
-        initSocketServer(res);
+function ioHandler(req: NextApiRequest, res: NextApiResponseSocket) {
+    if (res.socket.server.io) {
         res.end();
-    } catch (error) {
-        console.error('Socket initialization error:', error);
-        res.status(500).end();
+        return;
     }
-};
+
+    const io = new Server(res.socket.server, {
+        path: "/api/socket/io",
+        addTrailingSlash: false,
+        cors: {
+            origin: process.env.NEXT_PUBLIC_APP_URL,
+            methods: ["GET", "POST"],
+            credentials: true
+        }
+    });
+
+    res.socket.server.io = io;
+    res.end();
+}
 
 export default ioHandler;

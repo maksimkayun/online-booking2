@@ -16,8 +16,9 @@ export function useRoomBookings(hotelId?: string, roomId?: string) {
         hotelId && roomId ? `/api/hotels/${hotelId}/rooms/${roomId}/bookings` : null,
         fetcher,
         {
-            refreshInterval: 0,
-            revalidateOnFocus: false,
+            dedupingInterval: 2000, // Добавляем интервал дедупликации
+            revalidateOnFocus: false, // Отключаем ревалидацию при фокусе
+            revalidateOnMount: true,
             revalidateIfStale: false
         }
     );

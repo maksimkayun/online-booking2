@@ -23,10 +23,11 @@ export function SocketProvider({ children }: PropsWithChildren) {
                 // Динамический импорт socket.io-client
                 const { io } = await import('socket.io-client');
 
-                const newSocket = io(process.env.NEXT_PUBLIC_APP_URL, {
+                const newSocket = io(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', {
                     path: '/api/socket/io',
                     addTrailingSlash: false,
-                }) as SocketType;
+                    withCredentials: true
+                });
 
                 // Базовые обработчики событий сокета
                 newSocket.on('connect', () => {
